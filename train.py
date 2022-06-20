@@ -27,11 +27,11 @@ def main():
     parser.save(pjoin(args.save_path, 'args.txt'))
     os.makedirs(args.save_path, exist_ok=True)
 
-    if not args.multiple_sequences:
+    if not args.multiple_sequences: #默认参数是0，进这里
         motion_data = MotionData(pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh'),
-                                 padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
-                                 contact=args.contact, keep_y_pos=args.keep_y_pos,
-                                 joint_reduction=args.joint_reduction)
+                                 padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr, #1, 1, 'repr6d',
+                                 contact=args.contact, keep_y_pos=args.keep_y_pos, #1, 1,
+                                 joint_reduction=args.joint_reduction) #1
         multiple_data = [motion_data]
     else:
         multiple_data = load_multiple_dataset(prefix=args.bvh_prefix, name_list=pjoin(args.bvh_prefix, args.bvh_name),
