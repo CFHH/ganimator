@@ -71,7 +71,8 @@ class Skeleton:
         if self._parent is None:
             self._parent = self.original_parent[self.corps].copy() # self.original_parent[self.corps] 重组顺序
             for i in range(self._parent.shape[0]):
-                if i >= 1: self._parent[i] = self.simplify_map[self._parent[i]]
+                if i >= 1:
+                    self._parent[i] = self.simplify_map[self._parent[i]]
             self._parent = tuple(self._parent)
         return self._parent
 
