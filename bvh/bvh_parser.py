@@ -20,12 +20,12 @@ class Skeleton:
 
         for i, name in enumerate(self._names):
             if ':' in name:
-                self._names[i] = name[name.find(':')+1:]
+                self._names[i] = name[name.find(':')+1:] # mixamorig7:Hips -> Hips
 
         if joint_reduction:
             self.skeleton_type, match_num = SkeletonDatabase.match(names)
-            corps_names = SkeletonDatabase.corps_names[self.skeleton_type]
-            self.contact_names = SkeletonDatabase.contact_names[self.skeleton_type]
+            corps_names = SkeletonDatabase.corps_names[self.skeleton_type] # 这个只有24根骨骼，比names少了很多不重要的
+            self.contact_names = SkeletonDatabase.contact_names[self.skeleton_type] # 检测是否贴地的骨骼
             self.contact_threshold = SkeletonDatabase.contact_thresholds[self.skeleton_type]
 
             self.contact_id = []
@@ -39,10 +39,10 @@ class Skeleton:
         for i, name in enumerate(self._names):
             if name not in corps_names: self.details.append(i)
 
-        self.corps = []
-        self.simplified_name = []
-        self.simplify_map = {}
-        self.inverse_simplify_map = {}
+        self.corps = [] # SkeletonDatabase中的骨骼顺序在训练数据骨骼中的索引
+        self.simplified_name = [] # 最后就是SkeletonDatabase中的顺序
+        self.simplify_map = {} # 如55->1，55是训练数据骨骼的索引，1是SkeletonDatabase中的索引
+        self.inverse_simplify_map = {} # 如1->55
 
         # Repermute the skeleton id according to the databse
         for name in corps_names:
@@ -61,7 +61,7 @@ class Skeleton:
             self.simplify_map[j] = i
             self.inverse_simplify_map[i] = j
             self.simplified_name.append(self._names[j])
-        self.inverse_simplify_map[0] = -1
+        self.inverse_simplify_map[0] = -1 # 把 0->0 改成0->-1，没用。ForwardKinematicsJoint.forward()
         for i in range(len(self._names)):
             if i in self.details:
                 self.simplify_map[i] = -1
@@ -69,14 +69,14 @@ class Skeleton:
     @property
     def parent(self):
         if self._parent is None:
-            self._parent = self.original_parent[self.corps].copy()
+            self._parent = self.original_parent[self.corps].copy() # self.original_parent[self.corps] 重组顺序
             for i in range(self._parent.shape[0]):
                 if i >= 1: self._parent[i] = self.simplify_map[self._parent[i]]
             self._parent = tuple(self._parent)
         return self._parent
 
     @property
-    def offsets(self):
+    def offsets(self): # 相当于根据SkeletonDatabase中的骨骼顺序重新组织了_offsets
         return torch.tensor(self._offsets[self.corps], dtype=torch.float)
 
     @property
@@ -110,7 +110,7 @@ class BVH_file:
             self.anim.rotations = self.anim.rotations[::2]
 
         # Scale by 1/100 if it's raw exported bvh from blender
-        if not no_scale and self.skeleton.offsets[0, 1] > 10:
+        if not no_scale and self.skeleton.offsets[0, 1] > 10: # [0,1]也就是根骨骼的Y偏移，99.79
             self.scale(1. / 100)
 
         self.requires_contact = requires_contact
@@ -140,26 +140,26 @@ class BVH_file:
     def to_tensor(self, repr='euler', rot_only=False):
         if repr not in ['euler', 'quat', 'quaternion', 'repr6d']:
             raise Exception('Unknown rotation representation')
-        positions = self.get_position()
-        rotations = self.get_rotation(repr=repr)
+        positions = self.get_position() # 根骨骼偏移(frame, 3)
+        rotations = self.get_rotation(repr=repr) # 各骨骼旋转(frame, 24, 6)
 
         if rot_only:
             return rotations.reshape(rotations.shape[0], -1)
 
         if self.requires_contact:
-            virtual_contact = torch.zeros_like(rotations[:, :len(self.skeleton.contact_id)])
-            virtual_contact[..., 0] = self.contact_label
-            rotations = torch.cat([rotations, virtual_contact], dim=1)
+            virtual_contact = torch.zeros_like(rotations[:, :len(self.skeleton.contact_id)]) # (frame, 4, 6)
+            virtual_contact[..., 0] = self.contact_label # self.contact_label是(frame, 4)，
+            rotations = torch.cat([rotations, virtual_contact], dim=1)  # (frame, 28, 6)
 
-        rotations = rotations.reshape(rotations.shape[0], -1)
-        return torch.cat((rotations, positions), dim=-1)
+        rotations = rotations.reshape(rotations.shape[0], -1) # (frame, 28*6)
+        return torch.cat((rotations, positions), dim=-1) # (frame, 168) + (frame, 3) = (frame, 171)
 
     def joint_position(self):
-        positions = torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float)
-        rotations = self.anim.rotations[:, self.skeleton.corps, :]
-        rotations = Quaternions.from_euler(np.radians(rotations)).qs
+        positions = torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float) # 取根骨骼，(frame=648, 3)
+        rotations = self.anim.rotations[:, self.skeleton.corps, :] # (frame, 24, 3)
+        rotations = Quaternions.from_euler(np.radians(rotations)).qs # (frame, 24, 4)
         rotations = torch.tensor(rotations, dtype=torch.float)
-        j_loc = self.fk.forward(rotations, positions)
+        j_loc = self.fk.forward(rotations, positions) # 计算各骨骼节点的世界坐标位置(frame, 24, 3)
         return j_loc
 
     def get_rotation(self, repr='quat'):
@@ -168,7 +168,7 @@ class BVH_file:
             rotations = Quaternions.from_euler(np.radians(rotations)).qs
             rotations = torch.tensor(rotations, dtype=torch.float)
         if repr == 'repr6d':
-            rotations = quat2repr6d(rotations)
+            rotations = quat2repr6d(rotations) # (frame, 24, 6)
         if repr == 'euler':
             rotations = torch.tensor(rotations, dtype=torch.float)
         return rotations

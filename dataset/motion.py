@@ -17,7 +17,7 @@ class MotionData:
                                  joint_reduction=joint_reduction)
         self.contact = contact
         self.filename = filename
-        self.raw_motion = self.bvh_file.to_tensor(repr=repr)
+        self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据
         if repr == 'quat':
             self.n_rot = 4
         elif repr == 'repr6d':

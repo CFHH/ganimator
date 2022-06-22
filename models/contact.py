@@ -7,7 +7,7 @@ def foot_contact_by_height(pos):
 
 
 def velocity(pos, padding=False):
-    velo = pos[1:, ...] - pos[:-1, ...]
+    velo = pos[1:, ...] - pos[:-1, ...] # 后一帧 - 前一帧
     velo_norm = torch.norm(velo, dim=-1)
     if padding:
         pad = torch.zeros_like(velo_norm[:1, :])
@@ -15,12 +15,12 @@ def velocity(pos, padding=False):
     return velo_norm
 
 
-def foot_contact(pos, ref_height=1., threshold=0.018):
-    velo_norm = velocity(pos)
-    contact = velo_norm < threshold
+def foot_contact(pos, ref_height=1., threshold=0.018): # pos是(frame, 4, 3),4是几个检测点，3是世界坐标位置
+    velo_norm = velocity(pos) # (frame - 1, 4)
+    contact = velo_norm < threshold # (frame - 1, 1)
     contact = contact.int()
-    padding = torch.zeros_like(contact)
-    contact = torch.cat([padding[:1, :], contact], dim=0)
+    padding = torch.zeros_like(contact) # 生成和contact维度一致的全是零的内容
+    contact = torch.cat([padding[:1, :], contact], dim=0) # (frame, 1)，第一帧算作不动
     return contact
 
 

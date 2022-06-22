@@ -95,11 +95,11 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
         #        rmatch = re.match(r"ROOT (\w+)", line)
         rmatch = re.match(r"ROOT (\w+:?\w+)", line)
         if rmatch:
-            names.append(rmatch.group(1))
-            offsets = np.append(offsets, np.array([[0, 0, 0]]), axis=0)
-            orients.qs = np.append(orients.qs, np.array([[1, 0, 0, 0]]), axis=0)
-            parents = np.append(parents, active)
-            active = (len(parents) - 1)
+            names.append(rmatch.group(1)) # 根骨骼名字，比如mixamorig7:Hips。Joe的最终数量是65
+            offsets = np.append(offsets, np.array([[0, 0, 0]]), axis=0) # 先随便设个0，后面会读取OFFSET修改
+            orients.qs = np.append(orients.qs, np.array([[1, 0, 0, 0]]), axis=0) # Quaternions是四元数数组，qs是个二维数组
+            parents = np.append(parents, active) # 根骨骼没有父节点，-1
+            active = (len(parents) - 1) # 0
             continue
 
         if "{" in line: continue
@@ -114,7 +114,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
         offmatch = re.match(r"\s*OFFSET\s+([\-\d\.e]+)\s+([\-\d\.e]+)\s+([\-\d\.e]+)", line)
         if offmatch:
             if not end_site:
-                offsets[active] = np.array([list(map(float, offmatch.groups()))])
+                offsets[active] = np.array([list(map(float, offmatch.groups()))]) # 修改当前active骨骼的offset，之前是000
             continue
 
         chanmatch = re.match(r"\s*CHANNELS\s+(\d+)", line)
@@ -123,25 +123,28 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
 
             channelis = 0 if channels == 3 else 3
             channelie = 3 if channels == 3 else 6
-            parts = line.split()[2 + channelis:2 + channelie]
+            parts = line.split()[2 + channelis:2 + channelie] # ['Xrotation', 'Yrotation', 'Zrotation']
             if any([p not in channelmap for p in parts]):
                 continue
-            order = "".join([channelmap[p] for p in parts])
-            orders.append(order)
+            order = "".join([channelmap[p] for p in parts]) # 'xyz'
+            orders.append(order) # 一堆'xyz'
             continue
 
         """ Modified line read to handle mixamo data """
         #        jmatch = re.match("\s*JOINT\s+(\w+)", line)
         jmatch = re.match("\s*JOINT\s+(\w+:?\w+)", line)
         if jmatch:
-            names.append(jmatch.group(1))
-            offsets = np.append(offsets, np.array([[0, 0, 0]]), axis=0)
+            names.append(jmatch.group(1)) # 根骨骼名字，比如mixamorig7:Spine
+            offsets = np.append(offsets, np.array([[0, 0, 0]]), axis=0) # 先随便设个0，后面会读取OFFSET修改
             orients.qs = np.append(orients.qs, np.array([[1, 0, 0, 0]]), axis=0)
-            parents = np.append(parents, active)
-            active = (len(parents) - 1)
+            parents = np.append(parents, active) # 父节点索引
+            # orders是例外，不是先随便append一个，然后再修改
+            active = (len(parents) - 1) # 当前节点
             continue
 
         if "End Site" in line:
+            # End Site好像没什么用
+            # 配置中下面的OFFSET是什么意思？没什么用
             end_site = True
             continue
 
@@ -152,7 +155,9 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
             else:
                 fnum = int(fmatch.group(1))
             jnum = len(parents)
+            # offsets是(65, 3), positions是(fnum, 65, 3)
             positions = offsets[np.newaxis].repeat(fnum, axis=0)
+            # orients含65个，rotations是(fnum, 65, 3)
             rotations = np.zeros((fnum, len(orients), 3))
             continue
 
@@ -161,19 +166,20 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
             frametime = float(fmatch.group(1))
             continue
 
+        # 接下来是取各帧的数据，i原始为0
         if (start and end) and (i < start or i >= end - 1):
             i += 1
             continue
 
         # dmatch = line.strip().split(' ')
-        dmatch = line.strip().split()
+        dmatch = line.strip().split() #65骨骼的Joe，一行是198个数，198 = 3 + 65 * 3，先根骨骼偏移，再各骨骼旋转（3个欧拉角，单位是角度！！！！！！！！！！）
         if dmatch:
             data_block = np.array(list(map(float, dmatch)))
             N = len(parents)
-            fi = i - start if start else i
-            if channels == 3:
-                positions[fi, 0:1] = data_block[0:3]
-                rotations[fi, :] = data_block[3:].reshape(N, 3)
+            fi = i - start if start else i # fi = i
+            if channels == 3: # 这里的channels，使用了骨骼解析过程中的最后一次赋值，原则上不对
+                positions[fi, 0:1] = data_block[0:3]            # 修改第fi帧的根骨骼偏移，其他骨骼保持不变
+                rotations[fi, :] = data_block[3:].reshape(N, 3) # 修改第fi帧的各骨骼旋转
             elif channels == 6:
                 data_block = data_block.reshape(N, 6)
                 positions[fi, :] = data_block[:, 0:3]
@@ -190,18 +196,20 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
 
     f.close()
 
+    # 按照xyz来重新组织rotations是，如果本来就是xyz就不用处理了
     all_rotations = []
     canonical_order = 'xyz'
     for i, order in enumerate(orders):
-        rot = rotations[:, i:i + 1]
+        rot = rotations[:, i:i + 1] # rotations是(fnum, 65, 3)，rot是(fnum, 1, 3)，第i根骨骼在各帧的旋转
         if need_quater:
-            quat = Quaternions.from_euler(np.radians(rot), order=order, world=world)
+            quat = Quaternions.from_euler(np.radians(rot), order=order, world=world) # 此处说明旋转是用欧拉角表示的，而且是角度
             all_rotations.append(quat)
             continue
         elif order != canonical_order:
             quat = Quaternions.from_euler(np.radians(rot), order=order, world=world)
             rot = np.degrees(quat.euler(order=canonical_order))
         all_rotations.append(rot)
+    # all_rotations是65个(fnum, 1, 3)，再变回(fnum, 65, 3)
     rotations = np.concatenate(all_rotations, axis=1)
 
     return Animation(rotations, positions, orients, offsets, parents, names, frametime)
