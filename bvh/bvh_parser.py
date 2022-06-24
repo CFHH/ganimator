@@ -72,7 +72,7 @@ class Skeleton:
             self._parent = self.original_parent[self.corps].copy() # self.original_parent[self.corps] 重组顺序
             for i in range(self._parent.shape[0]):
                 if i >= 1:
-                    self._parent[i] = self.simplify_map[self._parent[i]]
+                    self._parent[i] = self.simplify_map[self._parent[i]] #最终是db骨骼系统中的父节点索引
             self._parent = tuple(self._parent)
         return self._parent
 
@@ -148,12 +148,12 @@ class BVH_file:
             return rotations.reshape(rotations.shape[0], -1)
 
         if self.requires_contact:
-            virtual_contact = torch.zeros_like(rotations[:, :len(self.skeleton.contact_id)]) # (frame, 4, 6)
-            virtual_contact[..., 0] = self.contact_label # self.contact_label是(frame, 4)，
-            rotations = torch.cat([rotations, virtual_contact], dim=1)  # (frame, 28, 6)
+            virtual_contact = torch.zeros_like(rotations[:, :len(self.skeleton.contact_id)]) # (frame, 4, 6)，rotations的第二维是24，这里取前4
+            virtual_contact[..., 0] = self.contact_label # self.contact_label是(frame, 4)，各帧的贴地数据。每帧数据是4行6列，这里把第一列的4个数换成了各帧的贴地数据
+            rotations = torch.cat([rotations, virtual_contact], dim=1)  # (frame, 28, 6)，原来一帧数据是24行6列，现在增加的4行，这4行的第一列是贴地数据，其他全是0
 
-        rotations = rotations.reshape(rotations.shape[0], -1) # (frame, 28*6)
-        return torch.cat((rotations, positions), dim=-1) # (frame, 168) + (frame, 3) = (frame, 171)
+        rotations = rotations.reshape(rotations.shape[0], -1) # (frame, 28*6)，6个6个排起来的
+        return torch.cat((rotations, positions), dim=-1) # (frame, 168) + (frame, 3) = (frame, 171)，旋转在前，位置在后
 
     def joint_position(self):
         positions = torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float) # 取根骨骼，(frame=648, 3)
@@ -189,34 +189,34 @@ class BVH_file:
         fa = self.skeleton.parent
         neighbor_list = []
         for x in range(0, len(fa)):
-            vis = [0 for _ in range(len(fa))]
-            dist = [0 for _ in range(len(fa))]
+            vis = [0 for _ in range(len(fa))] #在dfs里用来作为是否该位置已经计算的标志，0：未计算
+            dist = [0 for _ in range(len(fa))] #若x=0，表示到根骨骼的节点数量；其他情况，不理解其含义
             self.dfs(x, vis, dist)
             neighbor = []
             for j in range(0, len(fa)):
-                if dist[j] <= threshold:
+                if dist[j] <= threshold: #默认参数是2
                     neighbor.append(j)
             neighbor_list.append(neighbor)
 
         contact_list = []
         if self.requires_contact:
             for i, p_id in enumerate(self.skeleton.contact_id):
-                v_id = len(neighbor_list)
+                v_id = len(neighbor_list) #代表接下来的重复数据在neighbor_list中的序号
                 neighbor_list[p_id].append(v_id)
-                neighbor_list.append(neighbor_list[p_id])
-                contact_list.append(v_id)
+                neighbor_list.append(neighbor_list[p_id]) #已经存在了，再添加一遍
+                contact_list.append(v_id) #那些重复添加的，在neighbor_list中的序号
 
         root_neighbor = neighbor_list[0]
-        id_root = len(neighbor_list)
+        id_root = len(neighbor_list) #代表接下来的重复数据在neighbor_list中的序号
 
-        if enforce_contact:
+        if enforce_contact: #默认为True
             root_neighbor = root_neighbor + contact_list
             for j in contact_list:
-                neighbor_list[j] = list(set(neighbor_list[j]))
+                neighbor_list[j] = list(set(neighbor_list[j])) #没实际效果
 
-        root_neighbor = list(set(root_neighbor))
+        root_neighbor = list(set(root_neighbor)) #没实际效果
         for j in root_neighbor:
-            neighbor_list[j].append(id_root)
+            neighbor_list[j].append(id_root) #不重复添加，这里塞个序号0不行吗？
         root_neighbor.append(id_root)
-        neighbor_list.append(root_neighbor)  # Neighbor for root position
+        neighbor_list.append(root_neighbor)  # Neighbor for root position，已经存在，再添加一遍
         return neighbor_list

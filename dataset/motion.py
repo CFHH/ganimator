@@ -17,7 +17,7 @@ class MotionData:
                                  joint_reduction=joint_reduction)
         self.contact = contact
         self.filename = filename
-        self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据
+        self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据，171 = (24骨骼 + 4贴地额外) * 6 + 3，位置在后
         if repr == 'quat':
             self.n_rot = 4
         elif repr == 'repr6d':
@@ -29,24 +29,26 @@ class MotionData:
         self.keep_y_pos = keep_y_pos
 
         self.writer = self.bvh_file.writer
-        self.raw_motion = self.raw_motion.permute(1, 0)
-        self.raw_motion.unsqueeze_(0)     # Shape = (1, n_channel, n_frames)
+        self.raw_motion = self.raw_motion.permute(1, 0) #改变维度，(frame, 171)->(171, frame)，现在每列是一帧的数据
+        self.raw_motion.unsqueeze_(0)     # Shape = (1, n_channel, n_frames)，可能就是为了batch_size吧
         if self.use_velo:
-            self.velo_mask = [-3, -2, -1] if not keep_y_pos else [-3, -1]
+            self.velo_mask = [-3, -2, -1] if not keep_y_pos else [-3, -1] # y位置不动
+            #-1是最后一个，是z；-3是倒数第3个，是x。后一帧减前一帧
             self.raw_motion[:, self.velo_mask, 1:] = self.raw_motion[:, self.velo_mask, 1:] - \
                                                      self.raw_motion[:, self.velo_mask, :-1]
-            self.begin_pos = self.raw_motion[:, self.velo_mask, 0].clone()
-            self.raw_motion[:, self.velo_mask, 0] = self.raw_motion[:, self.velo_mask, 1]
+            self.begin_pos = self.raw_motion[:, self.velo_mask, 0].clone() #保存初始位置(1,2)
+            self.raw_motion[:, self.velo_mask, 0] = self.raw_motion[:, self.velo_mask, 1] #到此，除了第一帧，其他各帧的xz表示的是相对前一帧的偏移
 
 
         if padding:
             self.n_pad = self.n_rot - 3 # pad position channels
-            paddings = torch.zeros_like(self.raw_motion[:, :self.n_pad])
-            self.raw_motion = torch.cat((self.raw_motion, paddings), dim=1)
+            paddings = torch.zeros_like(self.raw_motion[:, :self.n_pad]) #(1,3,frame)
+            self.raw_motion = torch.cat((self.raw_motion, paddings), dim=1) #(1, 171, frame)->(1, 174, frame)，添3个0
         else:
             self.n_pad = 0
 
-        self.raw_motion = torch.cat((self.raw_motion[:, :-3-self.n_pad], self.raw_motion[:, -3-self.n_pad:]), dim=1)
+        self.raw_motion = torch.cat((self.raw_motion[:, :-3-self.n_pad], self.raw_motion[:, -3-self.n_pad:]), dim=1) #这操作没任何效果
+        #最终，(1, 174, frame)
 
         if contact:
             self.n_contact = len(self.bvh_file.skeleton.contact_id)
@@ -66,7 +68,7 @@ class MotionData:
         return res
 
     def sample(self, size=None, slerp=False, input=None):
-        raw_motion = self.raw_motion
+        raw_motion = self.raw_motion #(1, 174, frame)
         if input is not None:
             raw_motion = input
         if size is None:
@@ -75,7 +77,7 @@ class MotionData:
             if slerp:
                 motion = self.slerp(raw_motion, size=size)
             else:
-                motion = F.interpolate(raw_motion, size=size, mode='linear', align_corners=False)
+                motion = F.interpolate(raw_motion, size=size, mode='linear', align_corners=False) #(1, 174, size)
             return motion
 
     @property

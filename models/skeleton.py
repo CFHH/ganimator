@@ -37,7 +37,7 @@ class SkeletonConv(nn.Module):
                     expanded.append(k * self.in_channels_per_joint + i)
             self.expanded_neighbour_list.append(expanded)
 
-        if self.add_offset:
+        if self.add_offset: #默认False
             self.offset_enc = SkeletonLinear(neighbour_list, in_offset_channel * len(neighbour_list), out_channels)
 
             for neighbour in neighbour_list:

@@ -40,7 +40,7 @@ def main():
                                               joint_reduction=args.joint_reduction)
         motion_data = multiple_data[0]
 
-    interpolator = get_interpolator(args)
+    interpolator = get_interpolator(args) #是个插值函数
 
     lengths = []
     min_len = 10000
@@ -52,7 +52,7 @@ def main():
         lengths.append(new_length)
 
     for i in range(len(multiple_data)):
-        lengths[i] = lengths[i][-min_len:]
+        lengths[i] = lengths[i][-min_len:] #如果有多份数据，这是让他们的长度一样吧
 
     if not args.silent:
         print('Levels:', lengths)
@@ -71,23 +71,23 @@ def main():
     gans = []
     gens = []
     amps = [[] for _ in range(len(multiple_data))]
-    if args.full_zstar:
+    if args.full_zstar: #n_channels上property，每帧数据的长度174，lengths[i][0]是lengths[i]的最小帧数
         z_star = [torch.randn((1, motion_data.n_channels, lengths[i][0]), device=device) for i in range(len(multiple_data))]
     else:
         z_star = [torch.randn((1, 1, lengths[i][0]), device=device).repeat(1, motion_data.n_channels, 1) for i in range(len(multiple_data))]
     torch.save(z_star, pjoin(args.save_path, 'z_star.pt'))
     reals = [[] for _ in range(len(multiple_data))]
     gt_deltas = [[] for _ in range(len(multiple_data))]
-    training_groups = get_group_list(args, len(lengths[0]))
+    training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组
 
     for step in range(len(lengths[0])):
         for i in range(len(multiple_data)):
             length = lengths[i][step]
             motion_data = multiple_data[i]
-            reals[i].append(motion_data.sample(size=length).to(device))
-            last_real = reals[i][-2] if step > 0 else torch.zeros_like(reals[i][-1])
+            reals[i].append(motion_data.sample(size=length).to(device)) #把原动作数据插值成各种帧长度
+            last_real = reals[i][-2] if step > 0 else torch.zeros_like(reals[i][-1]) #reals[i]右移一个，最前头补一个0
             amps[i].append(torch.nn.MSELoss()(reals[i][-1], interpolator(last_real, length)) ** 0.5)
-            if step == 0 and args.correct_zstar_gen:
+            if step == 0 and args.correct_zstar_gen: #默认参数false
                 z_star[i] *= amps[i][0]
             gt_deltas[i].append(reals[i][-1] - interpolator(last_real, length))
 

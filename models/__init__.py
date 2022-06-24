@@ -4,12 +4,12 @@ from models.utils import get_layered_mask
 
 
 def get_channels_list(args, dataset, neighbour_list):
-    n_channels = dataset.n_channels
+    n_channels = dataset.n_channels #一帧的数据维度，174，见MotionData
 
     joint_num = len(neighbour_list)
 
-    base_channel = args.base_channel if args.base_channel != -1 else 128
-    n_layers = args.n_layers if args.n_layers != -1 else 4
+    base_channel = args.base_channel if args.base_channel != -1 else 128 #args.base_channel默认-1
+    n_layers = args.n_layers if args.n_layers != -1 else 4 #args.n_layers默认-1
     if args.use_factor_channel_list:
         base_channel = n_channels
 
@@ -17,10 +17,11 @@ def get_channels_list(args, dataset, neighbour_list):
     for i in range(n_layers - 1):
         channels_list.append(base_channel * (2 ** ((i+1) // 2)))
     channels_list += [n_channels]
-    # channels_list = [n_channels, base_channel, 2*base_channel, 2*base_channel, n_channels]
-    if args.skeleton_aware:
+    # channels_list = [n_channels, base_channel, 2*base_channel, 2*base_channel, n_channels]，此时[174, 128, 256, 256, 174]
+    if args.skeleton_aware: #默认True
         channels_list = [((n - 1) // joint_num + 1) * joint_num for n in channels_list]
-    if args.use_factor_channel_list:
+    # channels_list = [174, 145, 261, 261, 174]
+    if args.use_factor_channel_list: #默认false
         factor = [1, 1, 2, 2, 1]
         channels_list = [n_channels * f for f in factor]
 
@@ -84,7 +85,7 @@ def create_layered_model(args, dataset, evaluation=False, channels_list=None):
 
 
 def create_model(args, dataset, evaluation=False, channels_list=None):
-    if args.last_gen_active == 'None':
+    if args.last_gen_active == 'None': #True
         gen_last_active = None
     elif args.last_gen_active == 'Tanh':
         gen_last_active = nn.Tanh()
@@ -92,6 +93,7 @@ def create_model(args, dataset, evaluation=False, channels_list=None):
         raise Exception('Unrecognized last_gen_active')
 
     neighbour_list = dataset.bvh_file.get_neighbor(threshold=args.neighbour_dist, enforce_contact=args.enforce_contact)
+    #最终neighbour_list有29个，前24个是24根骨骼，接下来4个是贴地，最后那个是根骨骼
     if channels_list is None:
         channels_list = get_channels_list(args, dataset, neighbour_list)
 

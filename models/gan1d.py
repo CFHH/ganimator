@@ -11,8 +11,8 @@ class Conv1dModel(nn.Module):
         super(Conv1dModel, self).__init__()
         conv1d = functools.partial(SkeletonConv, neighbour_list=neighbour_list, joint_num=len(neighbour_list)) \
             if skeleton_aware else nn.Conv1d
-        if padding == -1:
-            if kernel_size % 2 == 0:
+        if padding == -1: #默认-1
+            if kernel_size % 2 == 0: #默认5
                 raise Exception('Only support odd kernel size for now')
             padding = (kernel_size - 1) // 2
         self.layers = nn.ModuleList()
@@ -21,7 +21,7 @@ class Conv1dModel(nn.Module):
             out_c = channels[i + 1]
             if i == len(channels) - 2 and out_c == 1:
                 conv1d = nn.Conv1d
-            bias = not batch_norm
+            bias = not batch_norm #batch_norm默认0
             if i == len(channels) - 2:
                 bias = True
             seq = [conv1d(in_channels=in_c, out_channels=out_c, kernel_size=kernel_size,

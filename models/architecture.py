@@ -11,6 +11,7 @@ from functools import partial
 
 
 def get_pyramid_lengths(args, dest):
+    #dest=648是一份数据的帧数，ratio=0.2，最终的length是[129, 172, 229, 305, 406, 541, 648]
     lengths = [16]
     ratio = eval(args.ratio)
     lengths[0] = int(dest * ratio)
