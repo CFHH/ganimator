@@ -36,7 +36,7 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
     :param args: arguments
     :param loss_recorder: loss recorder
     """
-    loop = range(args.num_iters)
+    loop = range(args.num_iters) #15000
     if not args.silent:
         loop = tqdm(loop)
 
@@ -54,7 +54,7 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
                 else:
                     conds = reals
                 imgs = draw_example(gens, mode, z_star, lengths, amps, batch_size=1, args=args, all_img=True,
-                                    full_noise=args.full_noise, conds=conds)
+                                    full_noise=args.full_noise, conds=conds) #用多个generator逐步生成fake动作
                 imgs.append(torch.zeros_like(reals[0]))  # Trick for get the base image for stage_id = 0
 
                 for j in range(len(gan_models)):

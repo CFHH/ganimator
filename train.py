@@ -78,9 +78,13 @@ def main():
     torch.save(z_star, pjoin(args.save_path, 'z_star.pt'))
     reals = [[] for _ in range(len(multiple_data))]
     gt_deltas = [[] for _ in range(len(multiple_data))]
-    training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组
+    training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组，[[0, 1], [2, 3], [4, 5], [6]]
 
-    for step in range(len(lengths[0])):
+    #模型部分，以648帧，每帧174个数据为例
+    #先根据[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator
+    #每个generator根据[174, 145, 261, 261, 174]做输入输出有4层
+    #每个discriminator根据[174, 145, 261, 261, 174, 1]有5层
+    for step in range(len(lengths[0])): #[129, 172, 229, 305, 406, 541, 648]，step从0到6
         for i in range(len(multiple_data)):
             length = lengths[i][step]
             motion_data = multiple_data[i]
@@ -91,14 +95,14 @@ def main():
                 z_star[i] *= amps[i][0]
             gt_deltas[i].append(reals[i][-1] - interpolator(last_real, length))
 
-        create = create_layered_model if args.layered_generator and step < args.num_layered_generator else create_model
-        gen, disc, gan_model = create(args, motion_data, evaluation=False)
+        create = create_layered_model if args.layered_generator and step < args.num_layered_generator else create_model #create_model
+        gen, disc, gan_model = create(args, motion_data, evaluation=False) #gan_model里含了gan和disc
 
         gens.append(gen)
         gans.append(gan_model)
 
     amps = torch.tensor(amps)
-    if not args.requires_noise_amp:
+    if not args.requires_noise_amp: #requires_noise_amp默认1
         amps = torch.ones_like(amps)
     torch.save(amps, pjoin(args.save_path, 'amps.pt'))
 

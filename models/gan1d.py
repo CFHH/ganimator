@@ -20,7 +20,7 @@ class Conv1dModel(nn.Module):
             in_c = channels[i]
             out_c = channels[i + 1]
             if i == len(channels) - 2 and out_c == 1:
-                conv1d = nn.Conv1d
+                conv1d = nn.Conv1d #Discriminator的最后一层
             bias = not batch_norm #batch_norm默认0
             if i == len(channels) - 2:
                 bias = True
