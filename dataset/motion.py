@@ -129,7 +129,7 @@ class MotionData:
         pos, rot, contact = self.parse(motion)
         if self.contact:
             np.save(filename + '.contact', contact.detach().cpu().numpy())
-        self.writer.write(filename, rot, pos, names=self.bvh_file.skeleton.names, repr=self.repr, scale100=scale100)
+        self.writer.write(filename, rot, pos, names=self.bvh_file.skeleton.names, repr=self.repr, frametime=self.bvh_file.frametime, scale100=scale100)
 
     def __len__(self):
         return self.raw_motion.shape[-1]

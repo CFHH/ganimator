@@ -139,7 +139,8 @@ def main():
 
     imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, args, all_img=True,
                         conds=None, full_noise=args.full_noise, given_noise=[z_target])
-    motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=True)
+    motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=False)
+    motion_data.write(pjoin(save_path, f'result_unfixed.bvh'), imgs[-1], scale100=True)
     fix_contact_on_file(save_path, name=f'result', scale100=True)
 
 

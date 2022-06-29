@@ -68,7 +68,7 @@ def fix_contact_on_file(prefix, name, scale100=False):
     bvh_file = BVH_file(pjoin(prefix, name + '.bvh'), no_scale=True, requires_contact=True)
     print('Fixing foot contact with IK...')
     res = fix_contact(bvh_file, contact)
-    bvh_file.writer.write(pjoin(prefix, name + '_fixed.bvh'), res[0], res[1], names=bvh_file.skeleton.names, repr='quat', scale100=scale100)
+    bvh_file.writer.write(pjoin(prefix, name + '_fixed.bvh'), res[0], res[1], names=bvh_file.skeleton.names, repr='quat', frametime=bvh_file.frametime, scale100=scale100)
 
 
 if __name__ == '__main__':

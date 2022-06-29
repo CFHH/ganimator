@@ -68,7 +68,7 @@ class WriterWrapper:
         self.parents = parents
         self.offset = offset
 
-    def write(self, filename, rot, pos, offset=None, names=None, repr='quat', scale100=False):
+    def write(self, filename, rot, pos, offset=None, names=None, repr='quat', frametime=1.0, scale100=False):
         """
         Write animation to bvh file
         :param filename:
