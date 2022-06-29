@@ -96,4 +96,4 @@ class WriterWrapper:
 
         if names is None:
             names = ['%02d' % i for i in range(n_bone)]
-        write_bvh(self.parents, offset, rot, pos, names, 1, 'xyz', filename, scale100=scale100)
+        write_bvh(self.parents, offset, rot, pos, names, frametime, 'xyz', filename, scale100=scale100)
