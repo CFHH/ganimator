@@ -4,7 +4,7 @@ from models.transforms import quat2euler, repr6d2quat
 
 
 # rotation with shape frame * J * 3
-def write_bvh(parent, offset, rotation, position, names, frametime, order, path, endsite=None):
+def write_bvh(parent, offset, rotation, position, names, frametime, order, path, endsite=None, scale100=False):
     file = open(path, 'w')
     frame = rotation.shape[0]
     joint_num = rotation.shape[1]
@@ -23,7 +23,10 @@ def write_bvh(parent, offset, rotation, position, names, frametime, order, path,
         else:
             name_label = 'JOINT ' + names[idx]
             channel_label = 'CHANNELS 3 {}rotation {}rotation {}rotation'.format(*order)
-        offset_label = 'OFFSET %.6f %.6f %.6f' % (offset[idx][0], offset[idx][1], offset[idx][2])
+        if scale100:
+            offset_label = 'OFFSET %.6f %.6f %.6f' % (offset[idx][0] * 100.0, offset[idx][1] * 100.0, offset[idx][2] * 100.0)
+        else:
+            offset_label = 'OFFSET %.6f %.6f %.6f' % (offset[idx][0], offset[idx][1], offset[idx][2])
 
         file_string += prefix + name_label + '\n'
         file_string += prefix + '{\n'
@@ -47,7 +50,10 @@ def write_bvh(parent, offset, rotation, position, names, frametime, order, path,
 
     file_string += 'MOTION\n' + 'Frames: {}\n'.format(frame) + 'Frame Time: %.8f\n' % frametime
     for i in range(frame):
-        file_string += '%.6f %.6f %.6f ' % (position[i][0], position[i][1], position[i][2])
+        if scale100:
+            file_string += '%.6f %.6f %.6f ' % (position[i][0] * 100.0, position[i][1] * 100.0, position[i][2] * 100.0)
+        else:
+            file_string += '%.6f %.6f %.6f ' % (position[i][0], position[i][1], position[i][2])
         for j in range(joint_num):
             idx = seq[j]
             file_string += '%.6f %.6f %.6f ' % (rotation[i][idx][0], rotation[i][idx][1], rotation[i][idx][2])
@@ -62,7 +68,7 @@ class WriterWrapper:
         self.parents = parents
         self.offset = offset
 
-    def write(self, filename, rot, pos, offset=None, names=None, repr='quat'):
+    def write(self, filename, rot, pos, offset=None, names=None, repr='quat', scale100=False):
         """
         Write animation to bvh file
         :param filename:
@@ -90,4 +96,4 @@ class WriterWrapper:
 
         if names is None:
             names = ['%02d' % i for i in range(n_bone)]
-        write_bvh(self.parents, offset, rot, pos, names, 1, 'xyz', filename)
+        write_bvh(self.parents, offset, rot, pos, names, 1, 'xyz', filename, scale100=scale100)
