@@ -115,7 +115,8 @@ def main():
     conds_rec = None
     for i in range(len(multiple_data)):
         motion_data = multiple_data[i]
-        imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
+        #'rec'改成'random'
+        imgs = draw_example(gens, 'random', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
                             full_noise=args.full_noise)
         real = motion_data.sample(size=len(motion_data), slerp=args.slerp).to(device)
         motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real)

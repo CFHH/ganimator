@@ -13,7 +13,13 @@ from loss_recorder import LossRecorder
 from demo import load_all_from_path
 from utils import get_device_info
 
-
+#
+# python train.py --bvh_prefix=./data/Joe --bvh_name=Salsa-Dancing-6 --save_path=./results/Joe --device=cuda:0
+# demo.py --save_path=./results/Joe
+#
+# python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d25_mWA4_ch05 --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05 --device=cuda:0
+# demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05
+#
 def main():
     start_time = time.time()
 
