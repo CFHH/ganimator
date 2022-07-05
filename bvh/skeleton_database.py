@@ -6,12 +6,39 @@ mixamo_contact_name = ['LeftToe_End', 'RightToe_End', 'LeftToeBase', 'RightToeBa
 elephant_contact_name = [name for name in elephant_corps_name if 'Hand' in name or 'Toe' in name or 'Foot' in name]
 crab_dance_contact_name = [name for name in crab_dance_corps_name if 'end' in name and ('05' in name or '10' in name or '15' in name)]
 
+smpl_corps_name = [
+    "pelvis",       #0
+    "l_hip",        #1
+    "r_hip",        #2
+    "spine1",       #3
+    "l_knee",       #4
+    "r_knee",       #5
+    "spine2",       #6
+    "l_ankle",      #7
+    "r_ankle",      #8
+    "spine3",       #9
+    "l_foot",       #10
+    "r_foot",       #11
+    "neck",         #12
+    "l_collar",     #13
+    "r_collar",     #14
+    "head",         #15
+    "l_shoulder",   #16
+    "r_shoulder",   #17
+    "l_elbow",      #18
+    "r_elbow",      #19
+    "l_wrist",      #20
+    "r_wrist",      #21
+    "l_hand",       #22 四根手指与手掌的连接处
+    "r_hand",       #23
+]
+smpl_contact_name = ['l_ankle', 'r_ankle', 'l_foot', 'r_foot']
 
 class SkeletonDatabase:
-    names = ['Mixamo', 'Elephant', 'Crab_dance']
-    corps_names = [mixamo_corps_name, elephant_corps_name, crab_dance_corps_name]
-    contact_names = [mixamo_contact_name, elephant_contact_name, crab_dance_contact_name]
-    contact_thresholds = [0.018, 0.018, 0.006]
+    names = ['Mixamo', 'Elephant', 'Crab_dance', 'smpl']
+    corps_names = [mixamo_corps_name, elephant_corps_name, crab_dance_corps_name, smpl_corps_name]
+    contact_names = [mixamo_contact_name, elephant_contact_name, crab_dance_contact_name, smpl_contact_name]
+    contact_thresholds = [0.018, 0.018, 0.006, 0.018]
 
     @classmethod
     def match(cls, joint_names):
