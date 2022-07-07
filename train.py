@@ -15,10 +15,11 @@ from utils import get_device_info
 
 #
 # python train.py --bvh_prefix=./data/Joe --bvh_name=Salsa-Dancing-6 --save_path=./results/Joe --device=cuda:0
-# demo.py --save_path=./results/Joe
+# python demo.py --save_path=./results/Joe
 #
 # python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d25_mWA4_ch05 --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05 --device=cuda:0
-# demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05
+# python demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05
+# gBR_sBM_cAll_d04_mBR0_ch01
 #
 # https://smpl.is.tue.mpg.de/index.html
 # https://blog.csdn.net/weixin_43955293/article/details/124670725

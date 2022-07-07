@@ -111,3 +111,6 @@ venv.bak/
 
 # aist
 data/aist/
+
+#
+*.bz2
