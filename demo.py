@@ -10,7 +10,7 @@ from fix_contact import fix_contact_on_file
 
 def load_all_from_path(save_path, device, use_class=False):
     train_parser = TrainOptionParser()
-    args = train_parser.load(pjoin(save_path, 'args.txt'))
+    args = train_parser.load(pjoin(save_path, 'args.txt')) #获取训练时的参数设置
     args.device = device
     args.save_path = save_path
     device = torch.device(args.device)
@@ -106,7 +106,7 @@ def main():
         ConGen = None
 
     print('levels:', lengths)
-    save_path = pjoin(args.save_path, 'bvh')
+    save_path = pjoin(args.save_path, 'bvh') #bvh文件夹
     os.makedirs(save_path, exist_ok=True)
 
     base_id = 0
@@ -126,12 +126,12 @@ def main():
             rec_loss = torch.nn.MSELoss()(imgs[-1], real).detach().cpu().numpy()
             print(f'rec_loss: {rec_loss.item():.07f}')
 
-    target_len = test_args.target_length
+    target_len = test_args.target_length #帧数
     target_length = get_pyramid_lengths(args, target_len)
     while len(target_length) > n_total_levels:
         target_length = target_length[1:]
-    z_length = target_length[0]
 
+    z_length = target_length[0]
     z_target = gen_noise(noise_channel, z_length, args.full_noise, device)
     z_target *= amps[base_id][0]
 

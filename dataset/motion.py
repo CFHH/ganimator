@@ -141,5 +141,6 @@ def load_multiple_dataset(prefix, name_list, **kargs):
     datasets = []
     for f in names:
         kargs['filename'] = pjoin(prefix, f)
+        print("load_multiple_dataset, %s" % kargs['filename'])
         datasets.append(MotionData(**kargs))
     return datasets

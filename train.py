@@ -14,6 +14,7 @@ from demo import load_all_from_path
 from utils import get_device_info
 
 #
+# 训练单个动作
 # python train.py --bvh_prefix=./data/Joe --bvh_name=Salsa-Dancing-6 --save_path=./results/Joe --device=cuda:0
 # python demo.py --save_path=./results/Joe
 #
@@ -21,6 +22,18 @@ from utils import get_device_info
 # python demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05
 # gBR_sBM_cAll_d04_mBR0_ch01
 #
+#
+# 训练多个动作
+# python train.py --bvh_prefix=./data/aist --bvh_name=list_1.txt --save_path=./results/list_1 --device=cuda:0 --multiple_sequences=1
+# python demo.py --save_path=./results/list_1
+#
+# list_1.txt
+#gWA_sFM_cAll_d25_mWA4_ch05.bvh
+#gWA_sBM_cAll_d27_mWA4_ch10.bvh
+#gWA_sFM_cAll_d27_mWA4_ch19.bvh
+#
+#
+# 一些资料
 # https://smpl.is.tue.mpg.de/index.html
 # https://blog.csdn.net/weixin_43955293/article/details/124670725
 # https://chowdera.com/2022/131/202205110634189207.html
@@ -58,14 +71,14 @@ def main():
     lengths = []
     min_len = 10000
     for i in range(len(multiple_data)):
-        new_length = get_pyramid_lengths(args, len(multiple_data[i]))
+        new_length = get_pyramid_lengths(args, len(multiple_data[i])) #对每份数据，算得帧数序列[129, 172, 229, 305, 406, 541, 648]
         min_len = min(min_len, len(new_length))
-        if args.num_stages_limit != -1:
+        if args.num_stages_limit != -1: #默认-1
             new_length = new_length[:args.num_stages_limit]
         lengths.append(new_length)
 
     for i in range(len(multiple_data)):
-        lengths[i] = lengths[i][-min_len:] #如果有多份数据，这是让他们的长度一样吧
+        lengths[i] = lengths[i][-min_len:] #让所有数据的帧数序列的长度一样，比如都是7个；对应于相同的序号，对原数据的缩放是差不多的
 
     if not args.silent:
         print('Levels:', lengths)
@@ -94,7 +107,7 @@ def main():
     training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组，[[0, 1], [2, 3], [4, 5], [6]]
 
     #模型部分，以648帧，每帧174个数据为例
-    #先根据[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator
+    #先根据[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator，第一个直接由随机数生成，后续的根据随机数和前面的生成结果来生成
     #每个generator根据[174, 145, 261, 261, 174]做输入输出有4层
     #每个discriminator根据[174, 145, 261, 261, 174, 1]有5层
     for step in range(len(lengths[0])): #[129, 172, 229, 305, 406, 541, 648]，step从0到6
