@@ -114,9 +114,10 @@ def main():
     # Evaluate with reconstruct noise
     conds_rec = None
     for i in range(len(multiple_data)):
+        #这for的代码没有用处，就是测试一下
         motion_data = multiple_data[i]
         #'rec'改成'random'
-        imgs = draw_example(gens, 'random', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
+        imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
                             full_noise=args.full_noise)
         real = motion_data.sample(size=len(motion_data), slerp=args.slerp).to(device)
         motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real)
@@ -126,7 +127,7 @@ def main():
             rec_loss = torch.nn.MSELoss()(imgs[-1], real).detach().cpu().numpy()
             print(f'rec_loss: {rec_loss.item():.07f}')
 
-    target_len = test_args.target_length #帧数
+    target_len = test_args.target_length #目标生成动作的帧数
     target_length = get_pyramid_lengths(args, target_len)
     while len(target_length) > n_total_levels:
         target_length = target_length[1:]
@@ -138,6 +139,7 @@ def main():
     amps2 = amps[base_id].clone()
     amps2[1:] = 0
 
+    #这里上真正的生成代码
     imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, args, all_img=True,
                         conds=None, full_noise=args.full_noise, given_noise=[z_target])
     motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=False)
