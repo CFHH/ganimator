@@ -10,7 +10,7 @@ from fix_contact import fix_contact_on_file
 
 def load_all_from_path(save_path, device, use_class=False):
     train_parser = TrainOptionParser()
-    args = train_parser.load(pjoin(save_path, 'args.txt')) #获取训练时的参数设置
+    args = train_parser.load(pjoin(save_path, 'args.txt')) #训练时的参数设置
     args.device = device
     args.save_path = save_path
     device = torch.device(args.device)
@@ -39,7 +39,7 @@ def load_all_from_path(save_path, device, use_class=False):
     for i in range(len(multiple_data)):
         lengths[i] = lengths[i][-min_len:]
 
-    gens = []
+    gens = [] #7个
     for step, length in enumerate(lengths[0]):
         create = create_layered_model if args.layered_generator and step < args.num_layered_generator else create_model
         gen = create(args, motion_data, evaluation=True)
@@ -92,7 +92,9 @@ def main():
     test_parser = TestOptionParser()
     test_args = test_parser.parse_args()
 
+    #加载训练产生的数据
     args, multiple_data, gens, z_stars, amps, lengths = load_all_from_path(test_args.save_path, test_args.device)
+
     device = torch.device(args.device)
     n_total_levels = len(gens)
 
@@ -120,19 +122,19 @@ def main():
         imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
                             full_noise=args.full_noise)
         real = motion_data.sample(size=len(motion_data), slerp=args.slerp).to(device)
-        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real)
-        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1])
+        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real) #真实动作
+        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1]) #生成动作
 
         if imgs[-1].shape[-1] == real.shape[-1]:
             rec_loss = torch.nn.MSELoss()(imgs[-1], real).detach().cpu().numpy()
             print(f'rec_loss: {rec_loss.item():.07f}')
 
     target_len = test_args.target_length #目标生成动作的帧数
-    target_length = get_pyramid_lengths(args, target_len)
+    target_length = get_pyramid_lengths(args, target_len) #帧数序列
     while len(target_length) > n_total_levels:
         target_length = target_length[1:]
 
-    z_length = target_length[0]
+    z_length = target_length[0] #最短的那个帧数
     z_target = gen_noise(noise_channel, z_length, args.full_noise, device)
     z_target *= amps[base_id][0]
 
