@@ -54,7 +54,7 @@ class OptionParser:
             raise Exception('LayeredGenerator with nearest interpolation not yet implemented')
         if args.multiple_sequences and len(args.path_to_existing) > 0:
             raise Exception('Does not support conditional generation for multiple sequences.')
-        if not args.contact and (args.enforce_contact or args.enforce_lower):
+        if not args.contact and args.enforce_contact: #(args.enforce_contact or args.enforce_lower)
             raise Exception('Contact is not enabled, but enforce_contact or enforce_lower is enabled.')
         return args
 

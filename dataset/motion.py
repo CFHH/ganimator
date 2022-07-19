@@ -13,6 +13,7 @@ class MotionData:
     def __init__(self, filename, repr='quat', padding=False, #'repr6d', True,
                  use_velo=False, no_scale=False, contact=False, keep_y_pos=False, #True, False, True, True,
                  joint_reduction=True): #True
+        print("MotionData, loading %s, contact=%d" % (filename, contact))
         self.bvh_file = BVH_file(filename, no_scale, requires_contact=contact,
                                  joint_reduction=joint_reduction)
         self.contact = contact

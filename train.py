@@ -19,14 +19,17 @@ from utils import get_device_info
 # python demo.py --save_path=./results/Joe
 #
 # python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d25_mWA4_ch05 --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05 --device=cuda:0
-# python demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05
+# python demo.py --save_path=./results/gWA_sFM_cAll_d25_mWA4_ch05 --target_length=960
+#
 # gBR_sBM_cAll_d04_mBR0_ch01
+# nohup python CMD > logtrain.log 2>&1 &
+# 不需要contack添加参数 --contack=0 --enforce_contact=0
 #
 # python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d26_mWA4_ch12 --save_path=./results/gWA_sFM_cAll_d26_mWA4_ch12 --device=cuda:0
-# python demo.py --save_path=./results/gWA_sFM_cAll_d26_mWA4_ch12
+# python demo.py --save_path=./results/gWA_sFM_cAll_d26_mWA4_ch12 --target_length=960
 #
 # nohup python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d27_mWA4_ch19 --save_path=./results/gWA_sFM_cAll_d27_mWA4_ch19 --device=cuda:0 > logtrain.log 2>&1 &
-# python demo.py --save_path=./results/gWA_sFM_cAll_d27_mWA4_ch19
+# python demo.py --save_path=./results/gWA_sFM_cAll_d27_mWA4_ch19 --target_length=960
 #
 #
 #
