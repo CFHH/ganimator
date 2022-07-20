@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from models.transforms import quat2euler, repr6d2quat
+from models.transforms import quat2euler, repr6d2quat, mat2degeuler
 
 
 # rotation with shape frame * J * 3
@@ -72,12 +72,12 @@ class WriterWrapper:
         """
         Write animation to bvh file
         :param filename:
-        :param rot: Quaternion as (w, x, y, z)
+        :param rot: Quaternion as (w, x, y, z), shape is (frames, bones, repr_n)
         :param pos:
         :param offset:
         :return:
         """
-        if repr not in ['euler', 'quat', 'quaternion', 'repr6d']:
+        if repr not in ['euler', 'quat', 'quaternion', 'repr6d', 'mat']:
             raise Exception('Unknown rotation representation')
         if offset is None:
             offset = self.offset
@@ -93,6 +93,9 @@ class WriterWrapper:
             rot /= rot.norm(dim=-1, keepdim=True) ** 0.5
             euler = quat2euler(rot, order='xyz')
             rot = euler
+        if repr == 'mat':
+            #ZZW TODO rot.shape=(帧数，骨骼数，9)是个tensor，处理后shape=(帧数，骨骼数，3)单位转成角度
+            rot = mat2degeuler(rot)
 
         if names is None:
             names = ['%02d' % i for i in range(n_bone)]

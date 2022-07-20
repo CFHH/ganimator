@@ -4,7 +4,7 @@ import numpy as np
 from bvh.Quaternions import Quaternions
 from bvh.skeleton_database import SkeletonDatabase
 from models.kinematics import ForwardKinematicsJoint
-from models.transforms import quat2repr6d, quat2mat
+from models.transforms import quat2repr6d, quat2mat, degeuler2mat
 from models.contact import foot_contact
 from bvh.bvh_writer import WriterWrapper
 
@@ -139,7 +139,7 @@ class BVH_file:
         self.anim.positions *= ratio
 
     def to_tensor(self, repr='euler', rot_only=False):
-        if repr not in ['euler', 'quat', 'quaternion', 'repr6d']:
+        if repr not in ['euler', 'quat', 'quaternion', 'repr6d', 'mat']:
             raise Exception('Unknown rotation representation')
         positions = self.get_position() # 根骨骼偏移(frame, 3)
         rotations = self.get_rotation(repr=repr) # 各骨骼旋转(frame, 24, 6)
@@ -171,6 +171,10 @@ class BVH_file:
         if repr == 'repr6d':
             rotations = quat2repr6d(rotations) # (frame, 24, 6)
         if repr == 'euler':
+            rotations = torch.tensor(rotations, dtype=torch.float)
+        if repr == 'mat':
+            #ZZW TODO rotations.shape=(帧数，骨骼数24，3)单位是角度，处理后shape=(帧数，骨骼数，9)还需要转成tenor
+            rotations = degeuler2mat(rotations)
             rotations = torch.tensor(rotations, dtype=torch.float)
         return rotations
 

@@ -23,7 +23,7 @@ class OptionParser:
         self.parser.add_argument('--ratio', type=str, default='1./5')
         self.parser.add_argument('--no_noise', type=int, default=0)
         self.parser.add_argument('--no_gan', type=int, default=0)
-        self.parser.add_argument('--repr', type=str, default='repr6d')
+        self.parser.add_argument('--repr', type=str, default='repr6d') # ['euler', 'quat', 'quaternion', 'repr6d', 'mat']
         self.parser.add_argument('--activation', type=str, default='LeakyReLu')
         self.parser.add_argument('--contact', type=int, default=1)
         self.parser.add_argument('--enforce_contact', type=int, default=1)

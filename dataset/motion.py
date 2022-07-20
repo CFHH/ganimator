@@ -19,12 +19,17 @@ class MotionData:
         self.contact = contact
         self.filename = filename
         self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据，171 = (24骨骼 + 4贴地额外) * 6 + 3，位置在后
-        if repr == 'quat':
-            self.n_rot = 4
-        elif repr == 'repr6d':
+
+        # ['euler', 'quat', 'quaternion', 'repr6d', 'mat']
+        if repr == 'repr6d':
             self.n_rot = 6
         elif repr == 'euler':
             self.n_rot = 3
+        elif repr == 'mat':
+            self.n_rot = 9
+        else:
+            self.n_rot = 4
+
         self.repr = repr
         self.use_velo = use_velo
         self.keep_y_pos = keep_y_pos
