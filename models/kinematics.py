@@ -1,5 +1,5 @@
 import torch
-from models.transforms import quat2mat, repr6d2mat, euler2mat
+from models.transforms import quat2mat, repr6d2mat, euler2mat, get_closest_rotmat
 
 
 class ForwardKinematics:
@@ -95,6 +95,7 @@ class ForwardKinematicsJoint:
         rotation = rotation.permute(0, 3, 1, 2)
         position = position.permute(0, 2, 1)
         '''
+        #rotation.shape=(帧数, 骨骼数24, 4)，repr6的的情况，在进来之前转成quat了（见utils.py里VeloLabelConsistencyLoss的__call__函数）
         if rotation.shape[-1] == 6:
             transform = repr6d2mat(rotation)
         elif rotation.shape[-1] == 4:
@@ -103,8 +104,15 @@ class ForwardKinematicsJoint:
             transform = quat2mat(rotation)
         elif rotation.shape[-1] == 3:
             transform = euler2mat(rotation)
+        elif rotation.shape[-1] == 9:
+            #ZZW TODO
+            frames = rotation.shape[0]
+            nodes = rotation.shape[1]
+            transform = rotation.reshape(frames, nodes, 3, 3)
+            transform = get_closest_rotmat(transform)
         else:
             raise Exception('Only accept quaternion rotation input')
+        #transform.shape=(帧数, 骨骼数24, 3, 3)
         result = torch.empty(transform.shape[:-2] + (3,), device=position.device)
 
         if offset is None:
