@@ -111,7 +111,7 @@ class ForwardKinematicsJoint:
             nodes = rotation.shape[1]
             transform = rotation.reshape(frames, nodes, 3, 3)
             transform = get_closest_rotmat(transform)
-            transform = torch.tensor(transform, dtype=torch.float64)
+            transform = torch.tensor(transform, dtype=torch.float32)
         else:
             raise Exception('Only accept quaternion rotation input')
         #transform.shape=(帧数, 骨骼数24, 3, 3)
