@@ -37,6 +37,8 @@ from utils import get_device_info
 # 训练多个动作
 # python train.py --bvh_prefix=./data/aist --bvh_name=list_1.txt --save_path=./results/list_1 --device=cuda:0 --multiple_sequences=1
 # python demo.py --save_path=./results/list_1
+# python train.py --bvh_prefix=./data/aist_noscale --bvh_name=list_1.txt --save_path=./results/list_1_noscale --device=cuda:0 --multiple_sequences=1
+# python demo.py --save_path=./results/list_1_noscale
 #
 # list_1.txt
 #gWA_sFM_cAll_d25_mWA4_ch05.bvh

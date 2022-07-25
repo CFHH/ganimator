@@ -95,6 +95,7 @@ class WriterWrapper:
             rot = euler
         if repr == 'mat':
             #ZZW TODO rot.shape=(帧数，骨骼数，9)是个tensor，处理后shape=(帧数，骨骼数，3)单位转成角度
+            rot = rot.detach().numpy()
             rot = mat2degeuler(rot)
 
         if names is None:
