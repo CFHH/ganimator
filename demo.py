@@ -122,8 +122,8 @@ def main():
         imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
                             full_noise=args.full_noise)
         real = motion_data.sample(size=len(motion_data), slerp=args.slerp).to(device)
-        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real) #真实动作
-        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1]) #生成动作
+        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real, scale100=True) #真实动作
+        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1], scale100=True) #生成动作
 
         if imgs[-1].shape[-1] == real.shape[-1]:
             rec_loss = torch.nn.MSELoss()(imgs[-1], real).detach().cpu().numpy()
