@@ -62,13 +62,13 @@ def write_bvh(parent, offset, rotation, position, names, frametime, order, path,
     file.write(file_string)
     return file_string
 
-def fix_euler_arctan(last, cur):
+def fix_euler_arctan_degree(last, cur):
     vals = np.array([cur, cur + 180.0, cur - 180.0, cur + 360.0, cur - 360.0])
     diff = np.abs(vals - last)
     index = np.argmin(diff)
     return vals[index]
 
-def fix_euler_arcsin(last, cur):
+def fix_euler_arcsin_degree(last, cur):
     n = int(last / 360.0)
     last -= n * 360.0
     val = cur
@@ -84,14 +84,14 @@ def fix_euler_arcsin(last, cur):
         val = 360.0 + cur
     return val + n * 360.0
 
-def fix_euler(rot):
+def fix_euler_degree(rot):
     #rot的单位是角度
     frames, joints, _ = rot.shape
     for i in range(joints):
         for j in range(1, frames):
-            rot[j, i, 0] = fix_euler_arctan(rot[j - 1, i, 0], rot[j, i, 0])
-            rot[j, i, 1] = fix_euler_arcsin(rot[j - 1, i, 1], rot[j, i, 1])
-            rot[j, i, 2] = fix_euler_arctan(rot[j - 1, i, 2], rot[j, i, 2])
+            rot[j, i, 0] = fix_euler_arctan_degree(rot[j - 1, i, 0], rot[j, i, 0])
+            rot[j, i, 1] = fix_euler_arcsin_degree(rot[j - 1, i, 1], rot[j, i, 1])
+            rot[j, i, 2] = fix_euler_arctan_degree(rot[j - 1, i, 2], rot[j, i, 2])
     return rot
 
 
@@ -126,7 +126,7 @@ class WriterWrapper:
             euler = quat2euler(rot, order='xyz')
             rot = euler
             if fix_euler:
-                rot = fix_euler(rot.detach().numpy())
+                rot = fix_euler_degree(rot.detach().numpy())
         if repr == 'mat':
             #ZZW TODO rot.shape=(帧数，骨骼数，9)是个tensor，处理后shape=(帧数，骨骼数，3)单位转成角度
             rot = rot.detach().numpy()
