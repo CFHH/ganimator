@@ -59,7 +59,7 @@ def fix_contact(bvh_file, contact):
     return repr6d2quat(ik_solver.rotations.detach()), ik_solver.get_position()
 
 
-def fix_contact_on_file(prefix, name, scale100=False):
+def fix_contact_on_file(prefix, name, scale100=False, fix_euler=False):
     try:
         contact = np.load(pjoin(prefix, name + '.bvh.contact.npy'))
     except:
@@ -68,7 +68,7 @@ def fix_contact_on_file(prefix, name, scale100=False):
     bvh_file = BVH_file(pjoin(prefix, name + '.bvh'), no_scale=True, requires_contact=True)
     print('Fixing foot contact with IK...')
     res = fix_contact(bvh_file, contact)
-    bvh_file.writer.write(pjoin(prefix, name + '_fixed.bvh'), res[0], res[1], names=bvh_file.skeleton.names, repr='quat', frametime=bvh_file.frametime, scale100=scale100)
+    bvh_file.writer.write(pjoin(prefix, name + '_fixed.bvh'), res[0], res[1], names=bvh_file.skeleton.names, repr='quat', frametime=bvh_file.frametime, scale100=scale100, fix_euler=fix_euler)
 
 
 if __name__ == '__main__':

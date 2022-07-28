@@ -4,7 +4,7 @@ from os.path import join as pjoin
 from dataset.motion import MotionData, load_multiple_dataset
 from models import create_model, create_layered_model
 from models.architecture import draw_example, get_pyramid_lengths, FullGenerator
-from option import TestOptionParser, TrainOptionParser
+from option import EvaluateOptionParser, TrainOptionParser
 from fix_contact import fix_contact_on_file
 
 
@@ -89,26 +89,26 @@ def gen_noise(n_channel, length, full_noise, device):
 
 
 def main():
-    test_parser = TestOptionParser()
-    test_args = test_parser.parse_args()
+    eval_parser = EvaluateOptionParser()
+    eval_args = eval_parser.parse_args()
 
     #加载训练产生的数据
-    args, multiple_data, gens, z_stars, amps, lengths = load_all_from_path(test_args.save_path, test_args.device)
+    train_args, multiple_data, gens, z_stars, amps, lengths = load_all_from_path(eval_args.save_path, eval_args.device)
 
-    device = torch.device(args.device)
+    device = torch.device(train_args.device)
     n_total_levels = len(gens)
 
     motion_data = multiple_data[0]
 
-    noise_channel = z_stars[0].shape[1] if args.full_noise else 1
+    noise_channel = z_stars[0].shape[1] if train_args.full_noise else 1
 
-    if len(args.path_to_existing):
-        ConGen = load_all_from_path(args.path_to_existing, args.device, use_class=True)
+    if len(train_args.path_to_existing):
+        ConGen = load_all_from_path(train_args.path_to_existing, train_args.device, use_class=True)
     else:
         ConGen = None
 
     print('levels:', lengths)
-    save_path = pjoin(args.save_path, 'bvh') #bvh文件夹
+    save_path = pjoin(train_args.save_path, 'bvh') #bvh文件夹
     os.makedirs(save_path, exist_ok=True)
 
     base_id = 0
@@ -119,35 +119,35 @@ def main():
         #这for的代码没有用处，就是测试一下
         motion_data = multiple_data[i]
         #'rec'改成'random'
-        imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, args, all_img=True, conds=conds_rec,
-                            full_noise=args.full_noise)
-        real = motion_data.sample(size=len(motion_data), slerp=args.slerp).to(device)
-        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real, scale100=True) #真实动作
-        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1], scale100=True) #生成动作
+        imgs = draw_example(gens, 'rec', z_stars[i], lengths[i] + [1], amps[i], 1, train_args, all_img=True, conds=conds_rec,
+                            full_noise=train_args.full_noise)
+        real = motion_data.sample(size=len(motion_data), slerp=train_args.slerp).to(device)
+        motion_data.write(pjoin(save_path, f'gt_{i}.bvh'), real, scale100=True, fix_euler=True) #真实动作
+        motion_data.write(pjoin(save_path, f'rec_{i}.bvh'), imgs[-1], scale100=True, fix_euler=eval_args.fix_euler) #生成动作
 
         if imgs[-1].shape[-1] == real.shape[-1]:
             rec_loss = torch.nn.MSELoss()(imgs[-1], real).detach().cpu().numpy()
             print(f'rec_loss: {rec_loss.item():.07f}')
 
-    target_len = test_args.target_length #目标生成动作的帧数
-    target_length = get_pyramid_lengths(args, target_len) #帧数序列
+    target_len = eval_args.target_length #目标生成动作的帧数
+    target_length = get_pyramid_lengths(train_args, target_len) #帧数序列
     while len(target_length) > n_total_levels:
         target_length = target_length[1:]
 
     z_length = target_length[0] #最短的那个帧数
-    z_target = gen_noise(noise_channel, z_length, args.full_noise, device)
+    z_target = gen_noise(noise_channel, z_length, train_args.full_noise, device)
     z_target *= amps[base_id][0]
 
     amps2 = amps[base_id].clone()
     amps2[1:] = 0
 
     #这里上真正的生成代码
-    imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, args, all_img=True,
-                        conds=None, full_noise=args.full_noise, given_noise=[z_target])
-    motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=False)
-    motion_data.write(pjoin(save_path, f'result_unfixed.bvh'), imgs[-1], scale100=True)
-    if args.contact:
-        fix_contact_on_file(save_path, name=f'result', scale100=True)
+    imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, train_args, all_img=True,
+                        conds=None, full_noise=train_args.full_noise, given_noise=[z_target])
+    motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=False, fix_euler=False)
+    motion_data.write(pjoin(save_path, f'result_unfixed.bvh'), imgs[-1], scale100=True, fix_euler=eval_args.fix_euler)
+    if train_args.contact:
+        fix_contact_on_file(save_path, name=f'result', scale100=True, fix_euler=eval_args.fix_euler)
 
 
 if __name__ == '__main__':

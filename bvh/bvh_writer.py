@@ -62,13 +62,45 @@ def write_bvh(parent, offset, rotation, position, names, frametime, order, path,
     file.write(file_string)
     return file_string
 
+def fix_euler_arctan(last, cur):
+    vals = np.array([cur, cur + 180.0, cur - 180.0, cur + 360.0, cur - 360.0])
+    diff = np.abs(vals - last)
+    index = np.argmin(diff)
+    return vals[index]
+
+def fix_euler_arcsin(last, cur):
+    n = int(last / 360.0)
+    last -= n * 360.0
+    val = cur
+    if last <= -270.0:
+        val = -360.0 + cur
+    elif last <= -90.0:
+        val = -180.0 - cur
+    elif last < 90.0:
+        val = cur
+    elif last < 270.0:
+        val = 180.0 - cur
+    else: #last < 360.0
+        val = 360.0 + cur
+    return val + n * 360.0
+
+def fix_euler(rot):
+    #rot的单位是角度
+    frames, joints, _ = rot.shape
+    for i in range(joints):
+        for j in range(1, frames):
+            rot[j, i, 0] = fix_euler_arctan(rot[j - 1, i, 0], rot[j, i, 0])
+            rot[j, i, 1] = fix_euler_arcsin(rot[j - 1, i, 1], rot[j, i, 1])
+            rot[j, i, 2] = fix_euler_arctan(rot[j - 1, i, 2], rot[j, i, 2])
+    return rot
+
 
 class WriterWrapper:
     def __init__(self, parents, offset=None):
         self.parents = parents
         self.offset = offset
 
-    def write(self, filename, rot, pos, offset=None, names=None, repr='quat', frametime=1.0, scale100=False):
+    def write(self, filename, rot, pos, offset=None, names=None, repr='quat', frametime=1.0, scale100=False, fix_euler=False):
         """
         Write animation to bvh file
         :param filename:
@@ -93,6 +125,8 @@ class WriterWrapper:
             rot /= rot.norm(dim=-1, keepdim=True) ** 0.5
             euler = quat2euler(rot, order='xyz')
             rot = euler
+            if fix_euler:
+                rot = fix_euler(rot.detach().numpy())
         if repr == 'mat':
             #ZZW TODO rot.shape=(帧数，骨骼数，9)是个tensor，处理后shape=(帧数，骨骼数，3)单位转成角度
             rot = rot.detach().numpy()
