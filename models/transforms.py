@@ -180,7 +180,7 @@ def euler2mat(rots, order='xyz'):
     for i in range(3):
         aa = axis[order[i]] * rots[..., i].unsqueeze(-1)
         mats.append(aa2mat(aa))
-    return mats[0] @ (mats[1] @ mats[2])
+    return mats[0] @ (mats[1] @ mats[2]) # torch中@是矩阵乘， *是矩阵点乘
 
 
 def aa2mat(rots):

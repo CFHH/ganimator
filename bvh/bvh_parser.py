@@ -94,8 +94,8 @@ class Skeleton:
 
 
 class BVH_file:
-    def __init__(self, file_path, no_scale=False, requires_contact=False, joint_reduction=True):
-        self.anim = bvh_io.load(file_path)
+    def __init__(self, file_path, no_scale=False, requires_contact=False, joint_reduction=True, start_frame=None, end_frame=None):
+        self.anim = bvh_io.load(file_path, start=start_frame, end=end_frame)
         self._names = self.anim.names
         self.frametime = self.anim.frametime
         self.skeleton = Skeleton(self.anim.names, self.anim.parent, self.anim.offsets, joint_reduction)

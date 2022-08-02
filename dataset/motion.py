@@ -12,10 +12,13 @@ from bvh.bvh_writer import WriterWrapper
 class MotionData:
     def __init__(self, filename, repr='quat', padding=False, #'repr6d', True,
                  use_velo=False, no_scale=False, contact=False, keep_y_pos=False, #True, False, True, True,
-                 joint_reduction=True): #True
-        print("MotionData, loading %s, contact=%d" % (filename, contact))
+                 joint_reduction=True, start_frame=None, end_frame=None): #True
+        if start_frame and end_frame:
+            print("MotionData, loading %s, [%d, %d),contact=%d" % (filename, start_frame, end_frame, contact))
+        else:
+            print("MotionData, loading %s, contact=%d" % (filename, contact))
         self.bvh_file = BVH_file(filename, no_scale, requires_contact=contact,
-                                 joint_reduction=joint_reduction)
+                                 joint_reduction=joint_reduction, start_frame=start_frame, end_frame=end_frame)
         self.contact = contact
         self.filename = filename
         self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据，171 = (24骨骼 + 4贴地额外) * 6 + 3，位置在后
@@ -150,3 +153,15 @@ def load_multiple_dataset(prefix, name_list, **kargs):
         print("load_multiple_dataset, %s" % kargs['filename'])
         datasets.append(MotionData(**kargs))
     return datasets
+
+def load_slice_dataset(start_frame, end_frame, slice_frame_num, **kargs):
+    slice_num = (end_frame - start_frame) / slice_frame_num
+    assert slice_num > 0
+    datasets = []
+    for i in range(slice_num):
+        start = start_frame + i * slice_frame_num
+        end = start + slice_frame_num
+        kargs['start_frame'] = start
+        kargs['end_frame'] = end
+        #print("load_slice_dataset, %s, slice[%d], [%d, 5d)" % (kargs['filename'], i, start, end))
+        datasets.append(MotionData(**kargs))

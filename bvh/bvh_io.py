@@ -54,10 +54,10 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
         File to be opened
 
     start : int
-        Optional Starting Frame
+        Optional Starting Frame, [start, end)
 
     end : int
-        Optional Ending Frame
+        Optional Ending Frame, [start, end)
 
     order : str
         Optional Specifier for joint order.
@@ -150,10 +150,14 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
 
         fmatch = re.match("\s*Frames:\s+(\d+)", line)
         if fmatch:
+            fnum = int(fmatch.group(1))
             if start and end:
-                fnum = (end - start) - 1
-            else:
-                fnum = int(fmatch.group(1))
+                if start <= 0:
+                    start = 0
+                if end <= 0 or end > fnum:
+                    end = fnum
+                fnum = (end - start)  # [start, end)
+                assert fnum > 0
             jnum = len(parents)
             # offsets是(65, 3), positions是(fnum, 65, 3)
             positions = offsets[np.newaxis].repeat(fnum, axis=0)
@@ -167,7 +171,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
             continue
 
         # 接下来是取各帧的数据，i原始为0
-        if (start and end) and (i < start or i >= end - 1):
+        if (start and end) and (i < start or i >= end):
             i += 1
             continue
 
@@ -214,7 +218,29 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
 
     return Animation(rotations, positions, orients, offsets, parents, names, frametime)
 
-    
+
+def get_frame_info(filename):
+    frame_num = 0
+    frame_time = 0.0
+    f = open(filename, "r")
+    cur_step = 0
+    for line in f:
+        if cur_step == 0:
+            if "MOTION" in line:
+                cur_step = 1
+                continue
+        if cur_step == 1:
+            cur_step = 2
+            fmatch = re.match("\s*Frames:\s+(\d+)", line)
+            frame_num = int(fmatch.group(1))
+            continue
+        if cur_step == 2:
+            fmatch = re.match("\s*Frame Time:\s+([\d\.]+)", line)
+            frame_time = float(fmatch.group(1))
+            break
+    return frame_num, frame_time
+
+
 def save(filename, anim, names=None, frametime=1.0/24.0, order='zyx', positions=False, orients=True):
     """
     Saves an Animation to file as BVH

@@ -100,6 +100,12 @@ class TrainOptionParser(OptionParser):
         self.parser.add_argument('--correct_zstar_gen', type=int, default=0)
         self.parser.add_argument('--use_6d_fk', type=int, default=0)
 
+        self.parser.add_argument('--slice', type=int, default=0) #把原始动作切成小片
+        self.parser.add_argument('--slice_time_len', type=float, default=2.0)  # 每片的时间长度
+        self.parser.add_argument('--start_frame', type=int, default=0)  # 起始帧（包含）
+        self.parser.add_argument('--end_frame', type=int, default=-1)  # 结束帧（不包含）,-1代表全部
+
+
     @staticmethod
     def checker(args):
         args = OptionParser.checker(args)

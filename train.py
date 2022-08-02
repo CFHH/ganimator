@@ -1,7 +1,7 @@
 import os
 import sys
 import torch
-from dataset.motion import MotionData, load_multiple_dataset
+from dataset.motion import MotionData, load_multiple_dataset, load_slice_dataset
 from models import create_model, create_layered_model, get_group_list
 from models.architecture import get_pyramid_lengths, joint_train
 from models.utils import get_interpolator
@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from loss_recorder import LossRecorder
 from demo import load_all_from_path
 from utils import get_device_info
+from bvh.bvh_io import get_frame_info
 
 #
 # 训练单个动作
@@ -25,6 +26,7 @@ from utils import get_device_info
 # nohup python CMD > logtrain.log 2>&1 &
 # 不需要contact添加参数 --contact=0 --enforce_contact=0
 # 旋转表达 --repr=mat
+# 切割 --slice=1 --slice_time_len=2.0
 #
 # python train.py --bvh_prefix=./data/aist --bvh_name=gWA_sFM_cAll_d26_mWA4_ch12 --save_path=./results/gWA_sFM_cAll_d26_mWA4_ch12 --device=cuda:0
 # python demo.py --save_path=./results/gWA_sFM_cAll_d26_mWA4_ch12 --target_length=960
@@ -67,11 +69,25 @@ def main():
     os.makedirs(args.save_path, exist_ok=True)
 
     if not args.multiple_sequences: #默认参数是0，进这里
-        motion_data = MotionData(pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh'),
-                                 padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr, #1, 1, 'repr6d',
-                                 contact=args.contact, keep_y_pos=args.keep_y_pos, #1, 1,
-                                 joint_reduction=args.joint_reduction) #1
-        multiple_data = [motion_data]
+        file_name = pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh')
+        if args.slice:
+            frame_num, frame_time = get_frame_info(file_name)
+            slice_frame_num = round(args.slice_time_len / frame_time)
+            start_frame = 0 if args.start_frame <= 0 else args.start_frame
+            end_frame = frame_num if (args.end_frame < 0 or args.end_frame > frame_num) else args.end_frame
+            assert end_frame > start_frame
+            multiple_data = load_slice_dataset(start_frame, end_frame, slice_frame_num,
+                                               filename = file_name,
+                                               padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
+                                               contact=args.contact, keep_y_pos=args.keep_y_pos,
+                                               joint_reduction=args.joint_reduction)
+            motion_data = multiple_data[0]
+        else:
+            motion_data = MotionData(file_name,
+                                     padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr, #1, 1, 'repr6d',
+                                     contact=args.contact, keep_y_pos=args.keep_y_pos, #1, 1,
+                                     joint_reduction=args.joint_reduction) #1
+            multiple_data = [motion_data]
     else:
         multiple_data = load_multiple_dataset(prefix=args.bvh_prefix, name_list=pjoin(args.bvh_prefix, args.bvh_name),
                                               padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
