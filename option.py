@@ -2,20 +2,20 @@ import argparse
 import sys
 import os
 
-
+# python train.py --bvh_prefix=./data/aist_noscale --bvh_name=gWA_sFM_cAll_d25_mWA4_ch05 --save_path=./results/d25_mWA4_slice --device=cuda:0 --slice=1 --slice_time_len=2.0
 class OptionParser:
     def __init__(self):
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('--debug', type=int, default=0)
         self.parser.add_argument('--device', type=str, default='cpu') #cuda:0  cpu
         self.parser.add_argument('--gan_mode', type=str, default='wgan-gp')
-        self.parser.add_argument('--save_path', type=str, default='./results/Joe')
+        self.parser.add_argument('--save_path', type=str, default='./results/Joe') #'./results/Joe'
         self.parser.add_argument('--padding_mode', type=str, default='reflect')
         self.parser.add_argument('--batch_norm', type=int, default=0)
         self.parser.add_argument('--scaling_rate', type=float, default=1/0.75)
         self.parser.add_argument('--kernel_size', type=int, default=5)
-        self.parser.add_argument('--bvh_name', type=str, default='Salsa-Dancing-6')
-        self.parser.add_argument('--bvh_prefix', type=str, default='./data/Joe')
+        self.parser.add_argument('--bvh_name', type=str, default='Salsa-Dancing-6') # 'Salsa-Dancing-6'
+        self.parser.add_argument('--bvh_prefix', type=str, default='./data/Joe') # './data/Joe'
         self.parser.add_argument('--last_gen_active', type=str, default='None')
         self.parser.add_argument('--skeleton_aware', type=int, default=1)
         self.parser.add_argument('--neighbour_dist', type=int, default=2)

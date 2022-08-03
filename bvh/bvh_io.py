@@ -79,6 +79,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
     i = 0
     active = -1
     end_site = False
+    use_start_end = not (start is None) and not (end is None)
 
     names = []
     orients = Quaternions.id(0)
@@ -151,7 +152,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
         fmatch = re.match("\s*Frames:\s+(\d+)", line)
         if fmatch:
             fnum = int(fmatch.group(1))
-            if start and end:
+            if use_start_end:
                 if start <= 0:
                     start = 0
                 if end <= 0 or end > fnum:
@@ -171,7 +172,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
             continue
 
         # 接下来是取各帧的数据，i原始为0
-        if (start and end) and (i < start or i >= end):
+        if use_start_end and (i < start or i >= end):
             i += 1
             continue
 
