@@ -172,7 +172,7 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
             continue
 
         # 接下来是取各帧的数据，i原始为0
-        if use_start_end and (i < start or i >= end):
+        if use_start_end and i < start:
             i += 1
             continue
 
@@ -198,6 +198,8 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
                 raise Exception("Too many channels! %i" % channels)
 
             i += 1
+            if use_start_end and i >= end:
+                break
 
     f.close()
 
