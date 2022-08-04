@@ -114,6 +114,7 @@ class MotionData:
 
     def parse(self, motion, keep_velo=False,):
         """
+        ZZW TODO
         No batch support here!!!
         :returns pos, rot, contact (if exists)
         """

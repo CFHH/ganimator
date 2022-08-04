@@ -1,11 +1,13 @@
 import torch
 import os
 from os.path import join as pjoin
-from dataset.motion import MotionData, load_multiple_dataset
+from dataset.motion import MotionData, load_multiple_dataset, load_slice_dataset
 from models import create_model, create_layered_model
 from models.architecture import draw_example, get_pyramid_lengths, FullGenerator
 from option import EvaluateOptionParser, TrainOptionParser
 from fix_contact import fix_contact_on_file
+from bvh.bvh_io import get_frame_info
+import random
 
 
 def load_all_from_path(save_path, device, use_class=False):
@@ -16,10 +18,24 @@ def load_all_from_path(save_path, device, use_class=False):
     device = torch.device(args.device)
 
     if not args.multiple_sequences:
-        motion_data = MotionData(pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh'),
-                                 padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
-                                 contact=args.contact, keep_y_pos=args.keep_y_pos)
-        multiple_data = [motion_data]
+        file_name = pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh')
+        if args.slice:
+            frame_num, frame_time = get_frame_info(file_name)
+            slice_frame_num = round(args.slice_time_len / frame_time)
+            start_frame = 0 if args.start_frame <= 0 else args.start_frame
+            end_frame = frame_num if (args.end_frame < 0 or args.end_frame > frame_num) else args.end_frame
+            assert end_frame > start_frame
+            multiple_data = load_slice_dataset(start_frame, end_frame, slice_frame_num,
+                                               filename=file_name,
+                                               padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
+                                               contact=args.contact, keep_y_pos=args.keep_y_pos,
+                                               joint_reduction=args.joint_reduction)
+            motion_data = multiple_data[0]
+        else:
+            motion_data = MotionData(file_name,
+                                     padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
+                                     contact=args.contact, keep_y_pos=args.keep_y_pos)
+            multiple_data = [motion_data]
     else:
         multiple_data = load_multiple_dataset(prefix=args.bvh_prefix, name_list=pjoin(args.bvh_prefix, args.bvh_name),
                                               padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
@@ -111,7 +127,7 @@ def main():
     save_path = pjoin(train_args.save_path, 'bvh') #bvh文件夹
     os.makedirs(save_path, exist_ok=True)
 
-    base_id = 0
+    base_id = random.randint(0, len(multiple_data) - 1)
 
     # Evaluate with reconstruct noise
     conds_rec = None
