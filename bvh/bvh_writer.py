@@ -125,8 +125,8 @@ class WriterWrapper:
             rot /= rot.norm(dim=-1, keepdim=True) ** 0.5
             euler = quat2euler(rot, order='xyz')
             rot = euler
-            if fix_euler:
-                rot = fix_euler_degree(rot.detach().numpy())
+            #if fix_euler:
+            #    rot = fix_euler_degree(rot.detach().numpy())
         if repr == 'mat':
             #ZZW TODO rot.shape=(帧数，骨骼数，9)是个tensor，处理后shape=(帧数，骨骼数，3)单位转成角度
             rot = rot.detach().numpy()

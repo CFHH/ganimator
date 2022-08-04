@@ -8,6 +8,7 @@ from option import EvaluateOptionParser, TrainOptionParser
 from fix_contact import fix_contact_on_file
 from bvh.bvh_io import get_frame_info
 import random
+from tqdm import tqdm, trange
 
 
 def load_all_from_path(save_path, device, use_class=False):
@@ -127,8 +128,6 @@ def main():
     save_path = pjoin(train_args.save_path, 'bvh') #bvh文件夹
     os.makedirs(save_path, exist_ok=True)
 
-    base_id = random.randint(0, len(multiple_data) - 1)
-
     # Evaluate with reconstruct noise
     conds_rec = None
     for i in range(len(multiple_data)):
@@ -150,20 +149,24 @@ def main():
     while len(target_length) > n_total_levels:
         target_length = target_length[1:]
 
-    z_length = target_length[0] #最短的那个帧数
-    z_target = gen_noise(noise_channel, z_length, train_args.full_noise, device)
-    z_target *= amps[base_id][0]
 
-    amps2 = amps[base_id].clone()
-    amps2[1:] = 0
+    generate_num = eval_args.gen_num
+    for index in trange(generate_num):
+        base_id = random.randint(0, len(multiple_data) - 1)
+        z_length = target_length[0] #最短的那个帧数
+        z_target = gen_noise(noise_channel, z_length, train_args.full_noise, device)
+        z_target *= amps[base_id][0]
 
-    #这里上真正的生成代码
-    imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, train_args, all_img=True,
-                        conds=None, full_noise=train_args.full_noise, given_noise=[z_target])
-    motion_data.write(pjoin(save_path, f'result.bvh'), imgs[-1], scale100=False, fix_euler=False)
-    motion_data.write(pjoin(save_path, f'result_unfixed.bvh'), imgs[-1], scale100=True, fix_euler=eval_args.fix_euler)
-    if train_args.contact:
-        fix_contact_on_file(save_path, name=f'result', scale100=True, fix_euler=eval_args.fix_euler)
+        amps2 = amps[base_id].clone()
+        amps2[1:] = 0
+
+        #这里上真正的生成代码
+        imgs = draw_example(gens, 'random', z_stars[base_id], target_length, amps2, 1, train_args, all_img=True,
+                            conds=None, full_noise=train_args.full_noise, given_noise=[z_target])
+        motion_data.write(pjoin(save_path, 'result_%03d.bvh' % index), imgs[-1], scale100=False, fix_euler=False)
+        motion_data.write(pjoin(save_path, 'result_%03d_unfixed.bvh' % index), imgs[-1], scale100=True, fix_euler=eval_args.fix_euler)
+        if train_args.contact:
+            fix_contact_on_file(save_path, name=f'result_%03d' % index, scale100=True, fix_euler=eval_args.fix_euler)
 
 
 if __name__ == '__main__':
