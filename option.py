@@ -3,7 +3,7 @@ import sys
 import os
 
 # python train.py --bvh_prefix=./data/aist_noscale --bvh_name=gWA_sFM_cAll_d25_mWA4_ch05 --save_path=./results/d25_mWA4_slice --device=cuda:0 --slice=1 --slice_time_len=2.0
-# python demo.py --save_path=./results/d25_mWA4_slice --target_length=60
+# python demo.py --save_path=./results/d25_mWA4_slice --target_length=60 --gen_num=100
 
 class OptionParser:
     def __init__(self):

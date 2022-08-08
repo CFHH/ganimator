@@ -38,15 +38,16 @@ class MotionData:
         self.keep_y_pos = keep_y_pos
 
         self.writer = self.bvh_file.writer
-        self.raw_motion = self.raw_motion.permute(1, 0) #改变维度，(frame, 171)->(171, frame)，现在每列是一帧的数据
+        self.raw_motion = self.raw_motion.permute(1, 0) # 改变维度，(frame, 171)->(171, frame)，现在每列是一帧的数据
         self.raw_motion.unsqueeze_(0)     # Shape = (1, n_channel, n_frames)，可能就是为了batch_size吧
         if self.use_velo:
             self.velo_mask = [-3, -2, -1] if not keep_y_pos else [-3, -1] # y位置不动
-            #-1是最后一个，是z；-3是倒数第3个，是x。后一帧减前一帧
+            # 第2个维度的最后3个数字是位置， 所以-1是最后一个是z，-3是倒数第3个是x，这里后一帧减前一帧
             self.raw_motion[:, self.velo_mask, 1:] = self.raw_motion[:, self.velo_mask, 1:] - \
                                                      self.raw_motion[:, self.velo_mask, :-1]
             self.begin_pos = self.raw_motion[:, self.velo_mask, 0].clone() #保存初始位置(1,2)
-            self.raw_motion[:, self.velo_mask, 0] = self.raw_motion[:, self.velo_mask, 1] #到此，除了第一帧，其他各帧的xz表示的是相对前一帧的偏移
+            self.raw_motion[:, self.velo_mask, 0] = self.raw_motion[:, self.velo_mask, 1]
+            # 到此，除了第0帧，其他各帧的xz表示的是相对前一帧的偏移；第0帧，使用第1帧的数据，以免解读为偏移时数值过大
 
 
         if padding:
@@ -114,7 +115,7 @@ class MotionData:
 
     def parse(self, motion, keep_velo=False,):
         """
-        ZZW TODO
+        ZZW TODO BATCH
         No batch support here!!!
         :returns pos, rot, contact (if exists)
         """

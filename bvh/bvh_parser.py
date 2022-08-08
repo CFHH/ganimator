@@ -193,34 +193,37 @@ class BVH_file:
         fa = self.skeleton.parent
         neighbor_list = []
         for x in range(0, len(fa)):
-            vis = [0 for _ in range(len(fa))] #在dfs里用来作为是否该位置已经计算的标志，0：未计算
-            dist = [0 for _ in range(len(fa))] #若x=0，表示到根骨骼的节点数量；其他情况，不理解其含义
+            vis = [0 for _ in range(len(fa))] #在dfs()里用来作为是否该位置已经计算的标志（is visited），0：未计算
+            dist = [0 for _ in range(len(fa))] #x节点到其他节点的距离
             self.dfs(x, vis, dist)
             neighbor = []
             for j in range(0, len(fa)):
-                if dist[j] <= threshold: #默认参数是2
+                if dist[j] <= threshold: #默认参数是2，小于等于2认为相邻
                     neighbor.append(j)
             neighbor_list.append(neighbor)
 
+        # 在数据中，对贴地检测的骨骼节点（比如4个），每个附加了6（取决于对节点旋转的表示方法）个数字，所以当作24+4=28的骨骼系统
+        # neighbor_list只有24，所以下面再加4个，同时自己跟自己相邻
         contact_list = []
         if self.requires_contact:
-            for i, p_id in enumerate(self.skeleton.contact_id):
-                v_id = len(neighbor_list) #代表接下来的重复数据在neighbor_list中的序号
-                neighbor_list[p_id].append(v_id)
-                neighbor_list.append(neighbor_list[p_id]) #已经存在了，再添加一遍
-                contact_list.append(v_id) #那些重复添加的，在neighbor_list中的序号
+            for i, p_id in enumerate(self.skeleton.contact_id): # p_id是贴地检测骨骼节点在骨骼系统中的序号
+                v_id = len(neighbor_list) # 虚拟的骨骼序号，也代表接下来的重复数据在neighbor_list中的序号
+                neighbor_list[p_id].append(v_id) # 自己重复一遍，自己跟自己相邻
+                neighbor_list.append(neighbor_list[p_id]) # 从24扩展到28
+                contact_list.append(v_id) # 记录重复的
 
+        # 根骨骼节点也重复一遍
         root_neighbor = neighbor_list[0]
-        id_root = len(neighbor_list) #代表接下来的重复数据在neighbor_list中的序号
+        id_root = len(neighbor_list) # 代表接下来的重复数据在neighbor_list中的序号
 
-        if enforce_contact: #默认为True
-            root_neighbor = root_neighbor + contact_list
+        if enforce_contact: # 默认为True
+            root_neighbor = root_neighbor + contact_list # 两个list合并
             for j in contact_list:
-                neighbor_list[j] = list(set(neighbor_list[j])) #没实际效果
+                neighbor_list[j] = list(set(neighbor_list[j])) # 没实际效果，除了顺序有可能变化
 
         root_neighbor = list(set(root_neighbor)) #没实际效果
         for j in root_neighbor:
-            neighbor_list[j].append(id_root) #不重复添加，这里塞个序号0不行吗？
+            neighbor_list[j].append(id_root) # 互为邻居，一个重复了一份，它的邻居都得添加
         root_neighbor.append(id_root)
         neighbor_list.append(root_neighbor)  # Neighbor for root position，已经存在，再添加一遍
         return neighbor_list

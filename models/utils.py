@@ -150,6 +150,7 @@ class GAN_loss(nn.Module):
 
 class VeloLabelConsistencyLoss(nn.Module):
     """
+    ZZW TODO BATCH
     This class does not support batching!!!!
     """
     def __init__(self, motion_data, detach_label=False, use_sigmoid=False, use_6d_fk=False):
@@ -200,6 +201,7 @@ class RecLoss(nn.Module):
             loss_pos = 0.
 
         if self.velo_cumsum:
+            # ZZW TODO BATCH
             a = self.motion_data.velo2pos(a)
             b = self.motion_data.velo2pos(b)
         return self.criteria(a, b) + loss_pos * self.lambda_pos

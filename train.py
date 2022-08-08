@@ -95,12 +95,18 @@ def main():
                                               joint_reduction=args.joint_reduction)
         motion_data = multiple_data[0]
 
+    # motion_data.shape = (1, channels, frame)
+    # channels = (24骨骼节点 + 4贴地标志) * 6（旋转） + 3（唯一，相对上一帧的便宜）+ 3（全0，pad） = 174
+    # 贴地标志，6个数字，第一个数字用1表示贴着地，其他是0
+    # 所谓贴地，就是先算出各帧各节点的世界坐标，后一帧减前一帧的向量的模若小于某阈值，则是1
+
     interpolator = get_interpolator(args) #是个插值函数
 
     lengths = []
     min_len = 10000
     for i in range(len(multiple_data)):
-        new_length = get_pyramid_lengths(args, len(multiple_data[i])) #对每份数据，算得帧数序列[129, 172, 229, 305, 406, 541, 648]
+        # 对每份数据，算得帧数序列，如648 => [129, 172, 229, 305, 406, 541, 648]
+        new_length = get_pyramid_lengths(args, len(multiple_data[i]))
         min_len = min(min_len, len(new_length))
         if args.num_stages_limit != -1: #默认-1
             new_length = new_length[:args.num_stages_limit]
@@ -126,14 +132,14 @@ def main():
     gans = []
     gens = []
     amps = [[] for _ in range(len(multiple_data))]
-    if args.full_zstar: #n_channels上property，每帧数据的长度174，lengths[i][0]是lengths[i]的最小帧数
-        z_star = [torch.randn((1, motion_data.n_channels, lengths[i][0]), device=device) for i in range(len(multiple_data))]
+    if args.full_zstar: #n_channels是property，每帧数据的长度174，lengths[i][0]是lengths[i]的最小帧数
+        z_star = [torch.randn((1, motion_data.n_channels, lengths[i][0]), device=device) for i in range(len(multiple_data))] # z_star[0].shape = (1, 174, 129)
     else:
         z_star = [torch.randn((1, 1, lengths[i][0]), device=device).repeat(1, motion_data.n_channels, 1) for i in range(len(multiple_data))]
     torch.save(z_star, pjoin(args.save_path, 'z_star.pt'))
     reals = [[] for _ in range(len(multiple_data))]
     gt_deltas = [[] for _ in range(len(multiple_data))]
-    training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组，[[0, 1], [2, 3], [4, 5], [6]]
+    training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组，所以其值是[[0, 1], [2, 3], [4, 5], [6]]
 
     #模型部分，以648帧，每帧174个数据为例
     #先根据[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator，第一个直接由随机数生成，后续的根据随机数和前面的生成结果来生成
