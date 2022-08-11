@@ -38,7 +38,7 @@ class MotionData:
         self.keep_y_pos = keep_y_pos
 
         self.writer = self.bvh_file.writer
-        self.raw_motion = self.raw_motion.permute(1, 0) # 改变维度，(frame, 171)->(171, frame)，现在每列是一帧的数据
+        self.raw_motion = self.raw_motion.permute(1, 0) # 改变维度，(frame, 171)->(171, frame)，现在每列是一帧的数据。一维卷积是在最后维度上扫的
         self.raw_motion.unsqueeze_(0)     # Shape = (1, n_channel, n_frames)，可能就是为了batch_size吧
         if self.use_velo:
             self.velo_mask = [-3, -2, -1] if not keep_y_pos else [-3, -1] # y位置不动
