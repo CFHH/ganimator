@@ -1,13 +1,17 @@
 import bpy
 import sys
 
-#https://alastaira.wordpress.com/2014/04/25/batch-conversion-of-bvh-to-fbx-motion-capture-files/
+# 使用方法：把bvh集中在一个目录里，把bvh2fbx.bat放进去，执行
+# FOR %%f IN (*.bvh) DO "H:\Program Files\Blender Foundation\Blender 3.2\blender.exe" -b --python "I:\ganimator\把bvh2fbx.py" -- "%%f"
+
+# https://alastaira.wordpress.com/2014/04/25/batch-conversion-of-bvh-to-fbx-motion-capture-files/
+# https://docs.blender.org/api/current/index.html
 
 # Get command line arguments
 argv = sys.argv
 argv = argv[argv.index("--") + 1:]  # get all args after "—"
 bvh_in = argv[0]
-fbx_out = argv[0] + ".fbx"
+fbx_out = bvh_in.split(".bvh")[0]+".fbx"
 
 # Import the BVH file
 # https://docs.blender.org/api/current/bpy.ops.import_anim.html

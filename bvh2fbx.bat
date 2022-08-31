@@ -1,1 +1,1 @@
-FOR %%f IN (*.bvh) DO "H:\Program Files\Blender Foundation\Blender 3.2\blender.exe" -b --python "I:\ganimator\convert_fbx.py" -- "%%f"
+FOR %%f IN (*.bvh) DO "H:\Program Files\Blender Foundation\Blender 3.2\blender.exe" -b --python "I:\ganimator\bvh2fbx.py" -- "%%f"
