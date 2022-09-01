@@ -10,7 +10,8 @@ from os import listdir, path
 # https://github.com/DeepMotionEditing/deep-motion-editing/issues/25
 
 def fbx2bvh(fbx_in, bvh_out):
-    bpy.ops.import_scene.fbx(filepath=fbx_in, use_anim=True, axis_forward='-Y', axis_up='Z')
+    # 这里的axis_forward和axis_up，填什么对bvh的结果无影响
+    bpy.ops.import_scene.fbx(filepath=fbx_in, use_anim=True, axis_forward='Z', axis_up='Y')
 
     frame_start = 9999
     frame_end = -9999
