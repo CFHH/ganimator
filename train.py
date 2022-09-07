@@ -68,9 +68,9 @@ def main():
     parser.save(pjoin(args.save_path, 'args.txt'))
     os.makedirs(args.save_path, exist_ok=True)
 
-    if not args.multiple_sequences: #默认参数是0，进这里
+    if not args.multiple_sequences: # 是否多个动作，默认是0，针对一个动作文件进行训练
         file_name = pjoin(args.bvh_prefix, f'{args.bvh_name}.bvh')
-        if args.slice:
+        if args.slice: # 把一个动作切成多个动作来进行训练
             frame_num, frame_time = get_frame_info(file_name)
             slice_frame_num = round(args.slice_time_len / frame_time)
             start_frame = 0 if args.start_frame <= 0 else args.start_frame
@@ -88,7 +88,7 @@ def main():
                                      contact=args.contact, keep_y_pos=args.keep_y_pos, #1, 1,
                                      joint_reduction=args.joint_reduction) #1
             multiple_data = [motion_data]
-    else:
+    else: # 训练多个动作
         multiple_data = load_multiple_dataset(prefix=args.bvh_prefix, name_list=pjoin(args.bvh_prefix, args.bvh_name),
                                               padding=args.skeleton_aware, use_velo=args.use_velo, repr=args.repr,
                                               contact=args.contact, keep_y_pos=args.keep_y_pos,
