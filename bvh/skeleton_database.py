@@ -6,7 +6,7 @@ mixamo_contact_name = ['LeftToe_End', 'RightToe_End', 'LeftToeBase', 'RightToeBa
 elephant_contact_name = [name for name in elephant_corps_name if 'Hand' in name or 'Toe' in name or 'Foot' in name]
 crab_dance_contact_name = [name for name in crab_dance_corps_name if 'end' in name and ('05' in name or '10' in name or '15' in name)]
 
-smpl_corps_name = [
+smpl_corps_name_original = [
     "pelvis",       #0
     "l_hip",        #1
     "r_hip",        #2
@@ -32,6 +32,8 @@ smpl_corps_name = [
     "l_hand",       #22 四根手指与手掌的连接处
     "r_hand",       #23
 ]
+# 下面的顺序，就是bvh中的出场次序，简化一些数据的可读性
+smpl_corps_name = ['pelvis', 'l_hip', 'l_knee', 'l_ankle', 'l_foot', 'r_hip', 'r_knee', 'r_ankle', 'r_foot', 'spine1', 'spine2', 'spine3', 'neck', 'head', 'l_collar', 'l_shoulder', 'l_elbow', 'l_wrist', 'l_hand', 'r_collar', 'r_shoulder', 'r_elbow', 'r_wrist', 'r_hand']
 smpl_contact_name = ['l_ankle', 'r_ankle', 'l_foot', 'r_foot']
 
 class SkeletonDatabase:

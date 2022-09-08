@@ -219,6 +219,16 @@ def load(filename, start=None, end=None, order=None, world=False, need_quater=Fa
     # all_rotations是65个(fnum, 1, 3)，再变回(fnum, 65, 3)
     rotations = np.concatenate(all_rotations, axis=1)
 
+    """
+    一下我换成smpl的动作了，骨骼节点总数是24不是65了
+    rotations: (帧数,24,3)，各帧各骨骼节点的旋转欧拉角
+    positions: (帧数,24,3)，根骨骼的数据是根骨骼的位移，其他骨骼的数据就是下面的offsets
+    orients  : (24,)，全是(1.0, 0.0, 0.0, 0.0)
+    offsets  : (24,3)，bvh文件骨架配置中的OFFSET，按文件中的出场次序
+    parents  : (24,)，[-1  0  1  2  3  0  5  6  7  0  9 10 11 12 11 14 15 16 17 11 19 20 21 22]
+    names    : (24,), ['pelvis', 'l_hip', 'l_knee', 'l_ankle', 'l_foot', 'r_hip', 'r_knee', 'r_ankle', 'r_foot', 'spine1', 'spine2', 'spine3', 'neck', 'head', 'l_collar', 'l_shoulder', 'l_elbow', 'l_wrist', 'l_hand', 'r_collar', 'r_shoulder', 'r_elbow', 'r_wrist', 'r_hand']
+    frametime: ()
+    """
     return Animation(rotations, positions, orients, offsets, parents, names, frametime)
 
 
