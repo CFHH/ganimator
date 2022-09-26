@@ -94,6 +94,7 @@ class ForwardKinematicsJoint:
         if quater and rotation.shape[-2] != 4: raise Exception('Unexpected shape of rotation')
         rotation = rotation.permute(0, 3, 1, 2)
         position = position.permute(0, 2, 1)
+        在训练过程中每一步都调用
         '''
         #rotation.shape=(帧数, 骨骼数24, 4)，repr6的的情况，在进来之前转成quat了（见utils.py里VeloLabelConsistencyLoss的__call__函数）
         if rotation.shape[-1] == 6:

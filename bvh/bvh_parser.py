@@ -121,6 +121,11 @@ class BVH_file:
         else:
             self.contact_names = []
 
+        """
+        parent : tuple（见函数），按照db骨骼系统中的节点顺序，父节点索引，(-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 11, 14, 15, 16, 17, 11, 19, 20, 21, 22)
+        offsets: tensor（见函数），按照db骨骼系统中的节点顺序，bvh文件中骨骼配置的OFFSET
+        这个fk会在训练过程中每一步都调用
+        """
         self.fk = ForwardKinematicsJoint(self.skeleton.parent, self.skeleton.offsets)
         self.writer = WriterWrapper(self.skeleton.parent, self.skeleton.offsets)
         if self.requires_contact:
@@ -156,8 +161,8 @@ class BVH_file:
         return torch.cat((rotations, positions), dim=-1) # (frame, 168) + (frame, 3) = (frame, 171)，旋转在前，位置在后
 
     def joint_position(self):
-        positions = torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float) # 取根骨骼，(frame=648, 3)
-        rotations = self.anim.rotations[:, self.skeleton.corps, :] # (frame, 24, 3)
+        positions = torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float) # 各帧根骨骼的位移，(frame=648, 3)
+        rotations = self.anim.rotations[:, self.skeleton.corps, :] # (frame, 24, 3)，self.skeleton.corps若是012345……，则就是bvh文件中的旋转
         rotations = Quaternions.from_euler(np.radians(rotations)).qs # (frame, 24, 4)
         rotations = torch.tensor(rotations, dtype=torch.float)
         j_loc = self.fk.forward(rotations, positions) # 计算各骨骼节点的世界坐标位置(frame, 24, 3)

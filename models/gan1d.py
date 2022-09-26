@@ -126,6 +126,7 @@ class GAN_model:
     def backward_G(self):
         pred_fake = self.disc(self.fake_res)
         self.loss_G = self.criterion_gan(pred_fake, True)
+        # VeloLabelConsistencyLoss.__call__()会调用kinematics
         self.loss_consistency = self.criterion_consistency(self.fake_res) if self.args.contact else torch.tensor(0.)
         loss_total = self.loss_G + \
                      self.loss_consistency * self.args.lambda_consistency
@@ -158,7 +159,7 @@ class GAN_model:
         if gen:
             self.disc_requires_grad_(False)
             self.optimizerG.zero_grad()
-            self.backward_G()
+            self.backward_G() # 会调用kinematics
             self.optimizerG.step()
 
         if disc:

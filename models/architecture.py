@@ -62,6 +62,7 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
                     gan_models[j].forward_proxy(reals[stage_id], interpolator(imgs[stage_id - 1], lengths[stage_id]))
 
                 # Discriminator : Generator : Reconstruction = args.D_fact : args.G_fact : 1
+                # optimize_parameters会调用kinematics
                 if i < args.D_fact:
                     optimize_lambda = lambda x: x.optimize_parameters(gen=False, disc=True, rec=False)
                 elif i < args.D_fact + args.G_fact:

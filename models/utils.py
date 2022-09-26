@@ -166,7 +166,7 @@ class VeloLabelConsistencyLoss(nn.Module):
         pos, rot, contact = self.motion_data.parse(motion)
         if rot.shape[-1] == 6 and not self.use_6d_fk:
             rot = repr6d2quat(rot)
-        pos_all = self.bvh_file.fk.forward(rot, pos, self.offset)
+        pos_all = self.bvh_file.fk.forward(rot, pos, self.offset) # 调用kinematics
         pos_contact = pos_all[:, self.bvh_file.skeleton.contact_id]
 
         from models.contact import velocity
