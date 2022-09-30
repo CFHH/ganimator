@@ -12,8 +12,8 @@ class SkeletonConv(nn.Module):
 
         if in_channels % joint_num != 0 or out_channels % joint_num != 0:
             raise Exception('in/out channels should be divided by joint_num')
-        self.in_channels_per_joint = in_channels // joint_num
-        self.out_channels_per_joint = out_channels // joint_num
+        self.in_channels_per_joint = in_channels // joint_num  #对每个gen或disc的第一层，174//29 = 6
+        self.out_channels_per_joint = out_channels // joint_num #对每个gen或disc的第一层，145//29 = 5
 
         if padding_mode == 'zeros': padding_mode = 'constant'
 
@@ -21,7 +21,7 @@ class SkeletonConv(nn.Module):
         self.expanded_neighbour_list_offset = []
         self.neighbour_list = neighbour_list
         self.add_offset = add_offset
-        self.joint_num = joint_num
+        self.joint_num = joint_num #29个
 
         self.stride = stride
         self.dilation = 1
@@ -30,6 +30,9 @@ class SkeletonConv(nn.Module):
         self.padding_mode = padding_mode
         self._padding_repeated_twice = (padding, padding)
 
+        #expanded_neighbour_list的含义是输入数据的的每帧中，neighbour数据的具体索引
+        #neighbour_list只是骨骼索引
+        #expanded_neighbour_list根据每个骨骼数据表达的数字个数，转到这些数字的索引
         for neighbour in neighbour_list:
             expanded = []
             for k in neighbour:
@@ -55,8 +58,9 @@ class SkeletonConv(nn.Module):
 
         self.mask = torch.zeros_like(self.weight)
         for i, neighbour in enumerate(self.expanded_neighbour_list):
+            #self.weight和self.mask的第一个维度 = self.out_channels_per_joint（比如第一层是5） * self.joint_num（29）
             self.mask[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1), neighbour, ...] = 1
-        self.mask = nn.Parameter(self.mask, requires_grad=False)
+        self.mask = nn.Parameter(self.mask, requires_grad=False) #将一个固定不可训练的tensor转换成可以训练的类型parameter
 
         self.description = 'SkeletonConv(in_channels_per_armature={}, out_channels_per_armature={}, kernel_size={}, ' \
                            'joint_num={}, stride={}, padding={}, bias={})'.format(
@@ -66,20 +70,22 @@ class SkeletonConv(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        #就在构造函数里调用了一次
         for i, neighbour in enumerate(self.expanded_neighbour_list):
             """ Use temporary variable to avoid assign to copy of slice, which might lead to un expected result """
             tmp = torch.zeros_like(self.weight[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1),
-                                   neighbour, ...])
-            nn.init.kaiming_uniform_(tmp, a=math.sqrt(5))
+                                   neighbour, ...]) #这第一维直接self.out_channels_per_joint不就完了吗？
+            nn.init.kaiming_uniform_(tmp, a=math.sqrt(5)) #初始化权重
             self.weight[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1),
                         neighbour, ...] = tmp
             if self.bias is not None:
+                # fan_in=240, fan_out=_=5，不知道什么东西
                 fan_in, _ = nn.init._calculate_fan_in_and_fan_out(
                     self.weight[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1), neighbour, ...])
                 bound = 1 / math.sqrt(fan_in)
                 tmp = torch.zeros_like(
                     self.bias[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1)])
-                nn.init.uniform_(tmp, -bound, bound)
+                nn.init.uniform_(tmp, -bound, bound) #均匀分布
                 self.bias[self.out_channels_per_joint * i: self.out_channels_per_joint * (i + 1)] = tmp
 
         self.weight = nn.Parameter(self.weight)
@@ -103,6 +109,7 @@ class SkeletonConv(nn.Module):
         return res
 
     def __repr__(self):
+        # 打印
         return self.description
 
 

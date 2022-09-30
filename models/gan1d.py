@@ -4,7 +4,7 @@ from models.skeleton import SkeletonConv
 from models.utils import GAN_loss, ImagePool, VeloLabelConsistencyLoss, RecLoss, DeltaLoss, get_layered_mask
 import functools
 
-
+## 这个Conv1dModel内含了多层conv1d
 class Conv1dModel(nn.Module):
     def __init__(self, channels, kernel_size, padding=-1, last_active='None', padding_mode='zeros', batch_norm=False,
                  skeleton_aware=False, neighbour_list=None, activation='LeakyReLU'):
@@ -16,7 +16,7 @@ class Conv1dModel(nn.Module):
                 raise Exception('Only support odd kernel size for now')
             padding = (kernel_size - 1) // 2
         self.layers = nn.ModuleList()
-        for i in range(len(channels) - 1):
+        for i in range(len(channels) - 1): # [174, 145, 261, 261, 174]，5个channels，4层conv1d
             in_c = channels[i]
             out_c = channels[i + 1]
             if i == len(channels) - 2 and out_c == 1:
@@ -26,7 +26,7 @@ class Conv1dModel(nn.Module):
                 bias = True
             seq = [conv1d(in_channels=in_c, out_channels=out_c, kernel_size=kernel_size,
                           padding=padding, padding_mode=padding_mode, bias=bias)]
-            if i < len(channels) - 2:
+            if i < len(channels) - 2: # 不是最后一层
                 if batch_norm:
                     seq.append(nn.BatchNorm1d(num_features=out_c))
 
@@ -37,7 +37,7 @@ class Conv1dModel(nn.Module):
                 else:
                     raise Exception('Unknown activation')
             else:
-                if last_active is not None:
+                if last_active is not None: # last_active = None
                     seq.append(last_active)
             self.layers.append(nn.Sequential(*seq))
         self.output = None
@@ -60,14 +60,15 @@ class Conv1dModel(nn.Module):
 
 class GAN_model:
     def __init__(self, gen: nn.Module, disc: nn.Module, args, dataset):
+        # dataset就是一个MotionData
         self.gen = gen
         self.disc = disc
-        self.optimizerG = torch.optim.Adam(gen.parameters(), lr=args.lr_g)
-        self.optimizerD = torch.optim.Adam(disc.parameters(), lr=args.lr_d)
+        self.optimizerG = torch.optim.Adam(gen.parameters(), lr=args.lr_g) # lr=0.0001
+        self.optimizerD = torch.optim.Adam(disc.parameters(), lr=args.lr_d) # lr=0.0001
         self.fake_pool = ImagePool(50)
-        self.criterion_gan = GAN_loss(args.gan_mode).to(args.device)
-        self.criterion_consistency = VeloLabelConsistencyLoss(dataset, args.detach_label, args.use_sigmoid, args.use_6d_fk).to(args.device)
-        self.criterion_rec = RecLoss(dataset, False, args.rec_loss_type)
+        self.criterion_gan = GAN_loss(args.gan_mode).to(args.device) # gan_mode = 'wgan-gp'
+        self.criterion_consistency = VeloLabelConsistencyLoss(dataset, args.detach_label, args.use_sigmoid, args.use_6d_fk).to(args.device) # 这个会调用kinematics
+        self.criterion_rec = RecLoss(dataset, False, args.rec_loss_type) # rec_loss_type = 'L1'
         self.gan_mode = args.gan_mode
         self.fake_res = None
         self.device = torch.device(args.device)
@@ -93,18 +94,19 @@ class GAN_model:
         Return the discriminator loss.
         We also call loss_D.backward() to calculate the gradients.
         """
-        # Real
-        pred_real = netD(real)
+        # Real，调用discriminator（也就是Conv1dModel）的forward
+        pred_real = netD(real) # (batch = 1, frame = 1, channels = 129)，帧数变成1
         loss_D_real = self.criterion_gan(pred_real, True)
         # Fake
         pred_fake = netD(fake.detach())
         loss_D_fake = self.criterion_gan(pred_fake, False)
         # Combined loss and calculate gradients
         loss_D = (loss_D_real + loss_D_fake) * 0.5
-        loss_D.backward()
+        loss_D.backward() #这个掉进torch内部的反向梯度了
         return loss_D
 
     def backward_D(self):
+        # forward_proxy()里设置了 real_res、fake_res
         fake = self.fake_pool.query(self.fake_res.detach())
         self.loss_D = self.backward_D_basic(self.disc, self.real_res, fake)
 
@@ -113,11 +115,11 @@ class GAN_model:
             interpolates = alpha * self.real_res + ((1 - alpha) * self.fake_res.detach())
             interpolates.requires_grad_(True)
 
-            disc_interpolates = self.disc(interpolates)
+            disc_interpolates = self.disc(interpolates) # (1, 1, 129)
 
             gradients = torch.autograd.grad(outputs=disc_interpolates, inputs=interpolates,
                                             grad_outputs=torch.ones_like(disc_interpolates),
-                                            create_graph=True, retain_graph=True, only_inputs=True)[0]
+                                            create_graph=True, retain_graph=True, only_inputs=True)[0]  # (1, 174, 129)
             gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
             gradient_penalty_back = gradient_penalty * self.args.lambda_gp
             gradient_penalty_back.backward()
@@ -128,8 +130,7 @@ class GAN_model:
         self.loss_G = self.criterion_gan(pred_fake, True)
         # VeloLabelConsistencyLoss.__call__()会调用kinematics
         self.loss_consistency = self.criterion_consistency(self.fake_res) if self.args.contact else torch.tensor(0.)
-        loss_total = self.loss_G + \
-                     self.loss_consistency * self.args.lambda_consistency
+        loss_total = self.loss_G + self.loss_consistency * self.args.lambda_consistency
         self.loss_G_total = loss_total
         loss_total.backward(retain_graph=True)
 
@@ -146,6 +147,7 @@ class GAN_model:
         In new joint training implementation, the forward function for GAN_model will no longer be called.
         This is a proxy function to retrieve essential properties needed for the backward step.
         Those properties were stored by forward function.
+        joint_train里调的是这个
         """
         assert real.shape[-1] == img_base.shape[-1]
         self.delta = self.gen.output
@@ -153,17 +155,17 @@ class GAN_model:
         self.fake_res = self.delta + img_base
 
     def optimize_parameters(self, gen=True, disc=True, rec=False):
-        if self.args.no_gan:
+        if self.args.no_gan: # 默认0
             gen = False
             disc = False
         if gen:
-            self.disc_requires_grad_(False)
-            self.optimizerG.zero_grad()
+            self.disc_requires_grad_(False) # 不需要更新discriminator的para
+            self.optimizerG.zero_grad() # 梯度默认是累计的，处理不同的batch需要清0
             self.backward_G() # 会调用kinematics
             self.optimizerG.step()
 
         if disc:
-            self.disc_requires_grad_(True)
+            self.disc_requires_grad_(True) # 需要更新discriminator的para
             self.optimizerD.zero_grad()
             self.backward_D()
             self.optimizerD.step()

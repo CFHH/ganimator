@@ -99,8 +99,9 @@ def main():
     # channels = (24骨骼节点 + 4贴地标志) * 6（旋转） + 3（唯一，相对上一帧的便宜）+ 3（全0，pad） = 174
     # 贴地标志，6个数字，第一个数字用1表示贴着地，其他是0
     # 所谓贴地，就是先算出各帧各节点的世界坐标，后一帧减前一帧的向量的模若小于某阈值，则是1
+    # 174 = 29*6，29 = 24骨骼 + 4贴地骨骼 + 1根骨骼，这是训练模型中29的缘由
 
-    interpolator = get_interpolator(args) #是个插值函数
+    interpolator = get_interpolator(args) #是个插值(采样)函数，默认args.nearest_interpolation=0
 
     lengths = []
     min_len = 10000
@@ -124,7 +125,7 @@ def main():
     writer = SummaryWriter(pjoin(args.save_path, './logs'))
     loss_recorder = LossRecorder(writer)
 
-    if len(args.path_to_existing) and args.layered_generator:
+    if len(args.path_to_existing) and args.layered_generator: # 2个条件都不满足
         ConGen = load_all_from_path(args.path_to_existing, args.device, use_class=True)
     else:
         ConGen = None
@@ -141,22 +142,29 @@ def main():
     gt_deltas = [[] for _ in range(len(multiple_data))]
     training_groups = get_group_list(args, len(lengths[0])) #[[129, 172, 229, 305, 406, 541, 648]]两个一组，所以其值是[[0, 1], [2, 3], [4, 5], [6]]
 
-    #模型部分，以648帧，每帧174个数据为例
-    #先根据[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator，第一个直接由随机数生成，后续的根据随机数和前面的生成结果来生成
-    #每个generator根据[174, 145, 261, 261, 174]做输入输出有4层
-    #每个discriminator根据[174, 145, 261, 261, 174, 1]有5层
+    #模型部分，以648帧，每帧174个数据（channel）为例
+    #首先，根据帧数[129, 172, 229, 305, 406, 541, 648]，有7个generator和discriminator，第一个直接由随机数生成，后续的根据随机数和前面的生成结果来生成
+    #然后，每个generator根据channel（在__init__.py的get_channels_list()里）[174, 145, 261, 261, 174]做输入输出有4层
+    #     每个discriminator根据[174, 145, 261, 261, 1]也是4层
+    #     每个generator和每个discriminator，除了discriminator的最后一层是nn.Conv1d之外，其他每层都是SkeletonConv
     for step in range(len(lengths[0])): #[129, 172, 229, 305, 406, 541, 648]，step从0到6
         for i in range(len(multiple_data)):
             length = lengths[i][step]
-            motion_data = multiple_data[i]
-            reals[i].append(motion_data.sample(size=length).to(device)) #把原动作数据插值成各种帧长度
+            motion_data = multiple_data[i] # (174, 648)
+            reals[i].append(motion_data.sample(size=length).to(device)) #把原动作数据按帧数降采样，(174, length)
             last_real = reals[i][-2] if step > 0 else torch.zeros_like(reals[i][-1]) #reals[i]右移一个，最前头补一个0
-            amps[i].append(torch.nn.MSELoss()(reals[i][-1], interpolator(last_real, length)) ** 0.5)
+            amps[i].append(torch.nn.MSELoss()(reals[i][-1], interpolator(last_real, length)) ** 0.5) # 均方损失函数，就是差的平方和，loss(input, target)，单个浮点数
             if step == 0 and args.correct_zstar_gen: #默认参数false
                 z_star[i] *= amps[i][0]
-            gt_deltas[i].append(reals[i][-1] - interpolator(last_real, length))
+            gt_deltas[i].append(reals[i][-1] - interpolator(last_real, length)) #把上一个lenghth的真实数据插值成现在length的数据，然后与现在的真实数据做差
 
-        create = create_layered_model if args.layered_generator and step < args.num_layered_generator else create_model #create_model
+        # 默认args.layered_generator=0，所以这里是create_model（在models\__init__.py里）
+        create = create_layered_model if args.layered_generator and step < args.num_layered_generator else create_model
+        """
+        gen : generator
+        disc: discriminator
+        gan : WGAN-GP
+        """
         gen, disc, gan_model = create(args, motion_data, evaluation=False) #gan_model里含了gan和disc
 
         gens.append(gen)
@@ -168,7 +176,7 @@ def main():
     torch.save(amps, pjoin(args.save_path, 'amps.pt'))
 
     last_stage = 0
-    for group in training_groups:
+    for group in training_groups: # [[0, 1], [2, 3], [4, 5], [6]]
         curr_stage = last_stage + len(group)
         group_gan_models = [gans[i] for i in group]
         joint_train(reals, gens[:curr_stage], group_gan_models, lengths,

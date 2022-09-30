@@ -131,6 +131,7 @@ class GAN_loss(nn.Module):
 
     @staticmethod
     def wgan_loss(prediction, target):
+        # target不是True就是False
         lmbda = torch.ones_like(target)
         lmbda[target == 1] = -1
         return (prediction * lmbda).mean()
@@ -153,7 +154,7 @@ class VeloLabelConsistencyLoss(nn.Module):
     ZZW TODO BATCH
     This class does not support batching!!!!
     """
-    def __init__(self, motion_data, detach_label=False, use_sigmoid=False, use_6d_fk=False):
+    def __init__(self, motion_data, detach_label=False, use_sigmoid=False, use_6d_fk=False): # 默认use_sigmoid=true
         super(VeloLabelConsistencyLoss, self).__init__()
         self.bvh_file = motion_data.bvh_file
         self.motion_data = motion_data
@@ -188,22 +189,24 @@ class RecLoss(nn.Module):
         if loss_type == 'L2':
             self.criteria = nn.MSELoss()
         elif loss_type == 'L1':
-            self.criteria = nn.L1Loss()
+            self.criteria = nn.L1Loss() # 做差，取绝对值，再平均
         else:
             raise Exception('Unknown loss type')
 
     def __call__(self, a, b):
-        if self.lambda_pos > 0:
+        if self.lambda_pos > 0: #实际是0，不执行
             a_pos = self.motion_data.parse(a, keep_velo=self.extra_velo)[0]
             b_pos = self.motion_data.parse(b, keep_velo=self.extra_velo)[0]
             loss_pos = self.criteria(a_pos, b_pos)
         else:
             loss_pos = 0.
 
-        if self.velo_cumsum:
+        if self.velo_cumsum: #实际是False，不执行
             # ZZW TODO BATCH
             a = self.motion_data.velo2pos(a)
             b = self.motion_data.velo2pos(b)
+
+        # 最终就是self.criteria(a, b)
         return self.criteria(a, b) + loss_pos * self.lambda_pos
 
 

@@ -28,8 +28,8 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
     """
     Train several stages jointly
     :param reals: Training examples, size equal to current group size
-    :param gens: All previously trained stages
-    :param gan_models: Models to be trained
+    :param gens: All previously trained stages，这里是所有的7个generator
+    :param gan_models: Models to be trained，这里只是需要的2个或1个gan
     :param lengths: Lengths including current group
     :param z_star: Reconstruction noise
     :param amps: Amplitude for nosie
@@ -42,31 +42,39 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
 
     interpolator = get_interpolator(args)
     for iters in loop:
+        #D_fact = 5，G_fact = 1
         for i in range(args.D_fact + args.G_fact + 1):
+            # all_reals是个list，有几个输入动作，它就有几个list；二级list，是真实动作按帧数降采样后的数据
             for m in range(len(all_reals)):
-                reals = all_reals[m]
-                z_star = all_z_star[m]
-                amps = all_amps[m]
-                lengths = all_lengths[m]
+                reals = all_reals[m] # 7个元素的list
+                z_star = all_z_star[m] # (1,174,129)与reals首个元素同维度
+                amps = all_amps[m] # (7,)
+                lengths = all_lengths[m] # [129, 172, 229, 305, 406, 541, 648]
                 mode = 'random' if i < args.D_fact + args.G_fact else 'rec'
                 if ConGen is not None and mode != 'rec':
                     conds = ConGen.random_generate(lengths)
                 else:
-                    conds = reals
+                    conds = reals # 执行
+                # 用多个generator逐步生成fake动作, 返回各个gen的输出，full_noise = 0
                 imgs = draw_example(gens, mode, z_star, lengths, amps, batch_size=1, args=args, all_img=True,
-                                    full_noise=args.full_noise, conds=conds) #用多个generator逐步生成fake动作
+                                    full_noise=args.full_noise, conds=conds)
                 imgs.append(torch.zeros_like(reals[0]))  # Trick for get the base image for stage_id = 0
 
                 for j in range(len(gan_models)):
-                    stage_id = j + len(gens) - len(gan_models)
+                    stage_id = j + len(gens) - len(gan_models) # 传入的gens是全部7个，gan_models只是部分（2个或1个）
+                    """
+                    当stage_id=0时，stage_id - 1 = -1表示最后一个，lenghth = 172 ！= 129，
+                    所以有前面的 mgs.append(torch.zeros_like(reals[0]))
+                    但为什么是 reals[0]，而不是 imgs[0]？
+                    """
                     gan_models[j].forward_proxy(reals[stage_id], interpolator(imgs[stage_id - 1], lengths[stage_id]))
 
-                # Discriminator : Generator : Reconstruction = args.D_fact : args.G_fact : 1
-                # optimize_parameters会调用kinematics
+                # Discriminator : Generator : Reconstruction = args.D_fact : args.G_fact : 1 = 5 : 1 : 1
+                # WGAN-GP: 先训练5次discriminator，再训练1次generator
                 if i < args.D_fact:
                     optimize_lambda = lambda x: x.optimize_parameters(gen=False, disc=True, rec=False)
                 elif i < args.D_fact + args.G_fact:
-                    optimize_lambda = lambda x: x.optimize_parameters(gen=True, disc=False, rec=False)
+                    optimize_lambda = lambda x: x.optimize_parameters(gen=True, disc=False, rec=False) # 会调用kinematics
                 else:
                     optimize_lambda = lambda x: x.optimize_parameters(gen=False, disc=False, rec=True)
                 list(map(optimize_lambda, gan_models))
@@ -266,7 +274,7 @@ def draw_example(gens, mode, z_star, lengths, amps, batch_size, args, all_img=Fa
     if gens is None:
         return torch.zeros((batch_size, 1, lengths[0]), device=device)
     # with torch.no_grad():
-    prev_img = torch.zeros((batch_size, z_star.shape[1], lengths[0]), device=device)
+    prev_img = torch.zeros((batch_size, z_star.shape[1], lengths[0]), device=device) # (1, 174, 129)
     for step, (gen, length, amp) in enumerate(zip(gens, lengths, amps)):
         current_mode = 'rec' if step < start_level else mode
 
@@ -274,12 +282,12 @@ def draw_example(gens, mode, z_star, lengths, amps, batch_size, args, all_img=Fa
         if args.no_noise:
             amp = 0.
         if current_mode == 'random' or current_mode == 'manip' or current_mode == 'cond':
-            n_channel = z_star.shape[1] if full_noise else 1
-            noise = torch.randn((batch_size, n_channel, length), device=device) * amp
+            n_channel = z_star.shape[1] if full_noise else 1 # 1
+            noise = torch.randn((batch_size, n_channel, length), device=device) * amp # (1, 1, 129)
             if given_noise is not None and step < len(given_noise):
                 noise = given_noise[step]
             if noise.shape[1] == 1:
-                noise = noise.repeat(1, z_star.shape[1], 1)
+                noise = noise.repeat(1, z_star.shape[1], 1) # (1, 174, 129)
         elif current_mode == 'rec':
             noise = z_star if step == 0 else 0
         else:
@@ -291,7 +299,7 @@ def draw_example(gens, mode, z_star, lengths, amps, batch_size, args, all_img=Fa
         elif step < num_cond:
             prev_img = gen(noise + prev_img, prev_img, cond=conds[step], cond_requires_mask=True) + prev_img
         else:
-            prev_img = gen(noise + prev_img, prev_img) + prev_img
+            prev_img = gen(noise + prev_img, prev_img) + prev_img #执行
 
         # Save result and upsample for next level
         imgs.append(prev_img)

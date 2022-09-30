@@ -85,7 +85,7 @@ def create_layered_model(args, dataset, evaluation=False, channels_list=None):
 
 
 def create_model(args, dataset, evaluation=False, channels_list=None):
-    if args.last_gen_active == 'None': #True
+    if args.last_gen_active == 'None': #默认是None
         gen_last_active = None
     elif args.last_gen_active == 'Tanh':
         gen_last_active = nn.Tanh()
@@ -102,12 +102,14 @@ def create_model(args, dataset, evaluation=False, channels_list=None):
     if not args.silent:
         print('Channel list:', channels_list)
 
+    # 这个Conv1dModel内含了多层conv1d
     gen = Conv1dModel(channels_list, args.kernel_size, last_active=gen_last_active,
                       padding_mode=args.padding_mode, batch_norm=args.batch_norm,
                       neighbour_list=neighbour_list, skeleton_aware=args.skeleton_aware).to(args.device)
     if evaluation:
         return gen
     else:
+        #channels_list的最后一项换成1，而不是补一项1；其他参数与generator相同
         disc = Conv1dModel(channels_list[:-1] + [1,], args.kernel_size, last_active=None,
                            padding_mode=args.padding_mode, batch_norm=args.batch_norm,
                            neighbour_list=neighbour_list, skeleton_aware=args.skeleton_aware).to(args.device)

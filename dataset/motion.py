@@ -119,21 +119,34 @@ class MotionData:
         No batch support here!!!
         :returns pos, rot, contact (if exists)
         """
-        motion = motion.clone()
+        motion = motion.clone() # (1, 174, 129)，129根据不同的干不同
 
-        if self.n_pad:
-            motion = motion[:, :-self.n_pad]
+        if self.n_pad: # 3
+            motion = motion[:, :-self.n_pad] # (1, 174-3, 129)
         if self.use_velo and not keep_velo:
+            # 设置第一帧的位移的xz为self.begin_pos
             motion[:, self.velo_mask, 0] = self.begin_pos.to(motion.device)
+            """
+            3维数据：层、行、列
+            dim = 0: 按层，后一层 = 后一层 + 前一层，最后一层就变成了原所有层的和
+            dim = 1: 按行，后一行 = 后一行 + 前一行，每层都独立这样做，最后一行就变成了原所有行的和
+            dim = 2(也就是-1): 按列，后一列 = 后一列 + 前一列，每一层每一行都独立这样做，最后一列就变成了原所有列的和
+            这里，就是把位置不断的累加
+            """
             motion[:, self.velo_mask] = torch.cumsum(motion[:, self.velo_mask], dim=-1)
-        motion = motion.squeeze().permute(1, 0)
-        pos = motion[..., -3:]
-        rot = motion[..., :-3].reshape(motion.shape[0], -1, self.n_rot)
+        motion = motion.squeeze().permute(1, 0) # (129, 171)
+        pos = motion[..., -3:] # (129, 3)
+        rot = motion[..., :-3].reshape(motion.shape[0], -1, self.n_rot) # (129, 28, 6)，28 = 24 + 4
         if self.contact:
-            contact = rot[..., -self.n_contact:, 0]
-            rot = rot[..., :-self.n_contact, :]
+            contact = rot[..., -self.n_contact:, 0] # (129, 4)，第0位就是标识是否贴地的0或1
+            rot = rot[..., :-self.n_contact, :] # (129, 24, 6)
         else:
             contact = None
+        """
+        pos:     (129, 3)
+        rot:     (129, 24, 6)
+        contact: (129, 4)
+        """
         return pos, rot, contact
 
     def write(self, filename, motion, scale100=False, fix_euler=False):

@@ -130,6 +130,7 @@ class BVH_file:
         self.writer = WriterWrapper(self.skeleton.parent, self.skeleton.offsets)
         if self.requires_contact:
             gl_pos = self.joint_position()
+            #gl_pos_np = gl_pos.numpy()
             self.contact_label = foot_contact(gl_pos[:, self.skeleton.contact_id],
                                               threshold=self.skeleton.contact_threshold)
             self.gl_pos = gl_pos
@@ -187,6 +188,7 @@ class BVH_file:
         return torch.tensor(self.anim.positions[:, 0, :], dtype=torch.float)
 
     def dfs(self, x, vis, dist):
+        # 深度优先搜索
         fa = self.skeleton.parent
         vis[x] = 1
         for y in range(len(fa)):
