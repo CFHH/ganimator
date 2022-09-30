@@ -79,6 +79,7 @@ def joint_train(all_reals, gens, gan_models, all_lengths, all_z_star, all_amps, 
                     optimize_lambda = lambda x: x.optimize_parameters(gen=False, disc=False, rec=True)
                 list(map(optimize_lambda, gan_models))
 
+        # 下面的是保存参数了，跟训练本身无关
         for j, gan_model in enumerate(gan_models):
             stage_id = j + len(gens) - len(gan_models)
             for loss_name in gan_model.loss_names:

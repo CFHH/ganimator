@@ -164,6 +164,10 @@ class VeloLabelConsistencyLoss(nn.Module):
         self.use_sigmoid = use_sigmoid
 
     def __call__(self, motion):
+        """
+        ZZW TODO 这里要把rot要用quat表示，euler和mat没处理
+        ['euler', 'quat', 'quaternion', 'repr6d', 'mat']:
+        """
         pos, rot, contact = self.motion_data.parse(motion)
         if rot.shape[-1] == 6 and not self.use_6d_fk:
             rot = repr6d2quat(rot)

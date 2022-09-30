@@ -24,6 +24,7 @@ class MotionData:
         self.raw_motion = self.bvh_file.to_tensor(repr=repr) #(frame, 171)训练用数据，171 = (24骨骼 + 4贴地额外) * 6 + 3，位置在后
 
         # ['euler', 'quat', 'quaternion', 'repr6d', 'mat']
+        # ZZW TODO VeloLabelConsistencyLoss里没处理
         if repr == 'repr6d':
             self.n_rot = 6
         elif repr == 'euler':
@@ -131,7 +132,8 @@ class MotionData:
             dim = 0: 按层，后一层 = 后一层 + 前一层，最后一层就变成了原所有层的和
             dim = 1: 按行，后一行 = 后一行 + 前一行，每层都独立这样做，最后一行就变成了原所有行的和
             dim = 2(也就是-1): 按列，后一列 = 后一列 + 前一列，每一层每一行都独立这样做，最后一列就变成了原所有列的和
-            这里，就是把位置不断的累加
+            这里，就是把位置不断的累加！
+            为什么？因为给模型的训练数据，用的就是相对上一帧的偏移，累加得到本帧的最终位置
             """
             motion[:, self.velo_mask] = torch.cumsum(motion[:, self.velo_mask], dim=-1)
         motion = motion.squeeze().permute(1, 0) # (129, 171)
