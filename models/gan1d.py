@@ -135,6 +135,7 @@ class GAN_model:
         loss_total.backward(retain_graph=True)
 
     def forward(self, noise, real, img_base=0, cond=None):
+        #这个不会调用
         if cond is not None:
             self.delta = self.gen(noise + img_base, img_base, cond=cond)
         else:
